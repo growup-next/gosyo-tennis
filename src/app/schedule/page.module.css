@@ -7,8 +7,93 @@
 .pageTitle {
     font-size: 1.25rem;
     font-weight: 700;
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-md);
     text-align: center;
+}
+
+/* デバッグセクション */
+.debugSection {
+    margin-bottom: var(--space-md);
+}
+
+.debugToggle {
+    width: 100%;
+    padding: var(--space-sm);
+    font-size: 0.75rem;
+    background: var(--gray-100);
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.debugToggle:hover {
+    background: var(--gray-200);
+}
+
+.debugPanel {
+    margin-top: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--gray-50);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.testBtn {
+    width: 100%;
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.testBtn:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.testBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.testResult {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.75rem;
+    font-family: monospace;
+    line-height: 1.5;
+}
+
+.testOk {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--secondary);
+}
+
+.testNg {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+}
+
+.testStatus {
+    font-size: 0.875rem;
+    margin-bottom: var(--space-sm);
+}
+
+.testDetails {
+    margin: var(--space-sm) 0;
+    padding-left: var(--space-md);
+}
+
+.testError {
+    color: var(--danger);
+    margin-top: var(--space-sm);
 }
 
 .form {

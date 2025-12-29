@@ -14,6 +14,20 @@ interface StoredEvent extends EventForm {
     id: string;
 }
 
+interface TestResult {
+    status: string;
+    environment?: {
+        spreadsheetId: string;
+        clientEmail: string;
+        privateKey: string;
+    };
+    authentication?: string;
+    sheetAccess?: string;
+    sheetTitle?: string;
+    availableSheets?: string[];
+    error?: string;
+}
+
 export default function SchedulePage() {
     const [formData, setFormData] = useState<EventForm>({
         date: new Date().toISOString().split('T')[0],
@@ -25,6 +39,9 @@ export default function SchedulePage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [showDebug, setShowDebug] = useState(false);
+    const [testResult, setTestResult] = useState<TestResult | null>(null);
+    const [isTesting, setIsTesting] = useState(false);
 
     // イベント読み込み
     useEffect(() => {
@@ -35,7 +52,6 @@ export default function SchedulePage() {
         const stored = localStorage.getItem('tennis_events');
         if (stored) {
             const parsed: StoredEvent[] = JSON.parse(stored);
-            // 日付が近い順にソート
             const sorted = parsed.sort((a, b) =>
                 new Date(a.date).getTime() - new Date(b.date).getTime()
             );
@@ -44,7 +60,6 @@ export default function SchedulePage() {
     };
 
     const saveEvents = (newEvents: StoredEvent[]) => {
-        // 日付が近い順にソート
         const sorted = newEvents.sort((a, b) =>
             new Date(a.date).getTime() - new Date(b.date).getTime()
         );
@@ -57,35 +72,66 @@ export default function SchedulePage() {
         setIsSubmitting(true);
         setMessage(null);
 
+        const eventId = editingId || `event_${formData.date}_${Date.now()}`;
+
         try {
+            // Google Sheetsに保存を試みる
+            const sheetsResponse = await fetch('/api/sheets/schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: eventId,
+                    ...formData,
+                }),
+            });
+
+            const sheetsData = await sheetsResponse.json();
+            console.log('Sheets API response:', sheetsData);
+
+            if (!sheetsResponse.ok) {
+                console.error('Sheets API error:', sheetsData);
+                // エラーをユーザーに表示するが、ローカル保存は続行
+                setMessage({
+                    type: 'error',
+                    text: `⚠️ スプレッドシート保存エラー: ${sheetsData.message || sheetsData.error || 'Unknown error'}`,
+                });
+            } else {
+                setMessage({ type: 'success', text: '✅ 開催日を登録しました！（スプレッドシートにも保存済み）' });
+            }
+
+            // ローカルストレージにも保存
             if (editingId) {
-                // 編集モード
                 const updated = events.map(ev =>
                     ev.id === editingId ? { ...formData, id: editingId } : ev
                 );
                 saveEvents(updated);
-                setMessage({ type: 'success', text: '開催日を更新しました！' });
-                setEditingId(null);
             } else {
-                // 新規登録
-                const eventId = `event_${formData.date}_${Date.now()}`;
                 const newEvent: StoredEvent = {
                     id: eventId,
                     ...formData,
                 };
                 saveEvents([...events, newEvent]);
-                setMessage({ type: 'success', text: '開催日を登録しました！' });
             }
 
-            // フォームリセット
+            setEditingId(null);
             setFormData({
                 date: new Date().toISOString().split('T')[0],
                 startTime: '09:00',
                 endTime: '12:00',
                 courtNumber: 1,
             });
-        } catch {
-            setMessage({ type: 'error', text: 'エラーが発生しました' });
+
+        } catch (error) {
+            console.error('Submit error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            setMessage({
+                type: 'error',
+                text: `❌ エラー: ${errorMessage}`,
+            });
+            // ネットワークエラーの場合、ユーザーに警告
+            alert(`保存処理中にエラーが発生しました:\n${errorMessage}\n\nローカルには保存されていない可能性があります。`);
         } finally {
             setIsSubmitting(false);
         }
@@ -100,7 +146,6 @@ export default function SchedulePage() {
         });
         setEditingId(event.id);
         setMessage(null);
-        // フォームへスクロール
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -109,7 +154,6 @@ export default function SchedulePage() {
             const filtered = events.filter(ev => ev.id !== eventId);
             saveEvents(filtered);
 
-            // 現在のイベントが削除されたらクリア
             const currentEvent = localStorage.getItem('current_event');
             if (currentEvent) {
                 const parsed = JSON.parse(currentEvent);
@@ -133,12 +177,30 @@ export default function SchedulePage() {
         setMessage(null);
     };
 
-    // 2ヶ月先までの日付を計算
+    const handleConnectionTest = async () => {
+        setIsTesting(true);
+        setTestResult(null);
+
+        try {
+            const response = await fetch('/api/sheets/test', {
+                method: 'POST',
+            });
+            const data = await response.json();
+            setTestResult(data);
+        } catch (error) {
+            setTestResult({
+                status: 'NG',
+                error: error instanceof Error ? error.message : 'Network error',
+            });
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 2);
     const maxDateStr = maxDate.toISOString().split('T')[0];
 
-    // 今日以降の開催日と過去の開催日を分ける
     const today = new Date().toISOString().split('T')[0];
     const upcomingEvents = events.filter(ev => ev.date >= today);
     const pastEvents = events.filter(ev => ev.date < today);
@@ -146,6 +208,57 @@ export default function SchedulePage() {
     return (
         <div className={styles.container}>
             <h1 className={styles.pageTitle}>📅 開催スケジュール</h1>
+
+            {/* デバッグパネル */}
+            <div className={styles.debugSection}>
+                <button
+                    type="button"
+                    className={styles.debugToggle}
+                    onClick={() => setShowDebug(!showDebug)}
+                >
+                    🔧 デバッグ {showDebug ? '▲' : '▼'}
+                </button>
+
+                {showDebug && (
+                    <div className={styles.debugPanel}>
+                        <button
+                            type="button"
+                            className={styles.testBtn}
+                            onClick={handleConnectionTest}
+                            disabled={isTesting}
+                        >
+                            {isTesting ? '接続中...' : '📊 スプレッドシート接続テスト'}
+                        </button>
+
+                        {testResult && (
+                            <div className={`${styles.testResult} ${testResult.status === 'OK' ? styles.testOk : styles.testNg}`}>
+                                <div className={styles.testStatus}>
+                                    ステータス: <strong>{testResult.status}</strong>
+                                </div>
+                                {testResult.environment && (
+                                    <div className={styles.testDetails}>
+                                        <div>Spreadsheet ID: {testResult.environment.spreadsheetId}</div>
+                                        <div>Client Email: {testResult.environment.clientEmail}</div>
+                                        <div>Private Key: {testResult.environment.privateKey}</div>
+                                    </div>
+                                )}
+                                {testResult.authentication && (
+                                    <div>認証: {testResult.authentication}</div>
+                                )}
+                                {testResult.sheetAccess && (
+                                    <div>シートアクセス: {testResult.sheetAccess}</div>
+                                )}
+                                {testResult.availableSheets && (
+                                    <div>利用可能なシート: {testResult.availableSheets.join(', ')}</div>
+                                )}
+                                {testResult.error && (
+                                    <div className={styles.testError}>エラー: {testResult.error}</div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <form onSubmit={handleSubmit} className={styles.form}>
                 {editingId && (
