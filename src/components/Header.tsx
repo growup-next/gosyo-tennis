@@ -20,7 +20,7 @@ export default function Header() {
             <div className={styles.container}>
                 <Link href="/" className={styles.logo}>
                     <span className={styles.logoIcon}>🎾</span>
-                    <span className={styles.logoText}>テニスクラブ</span>
+                    <span className={styles.logoText}>御所テニスクラブ</span>
                 </Link>
             </div>
 

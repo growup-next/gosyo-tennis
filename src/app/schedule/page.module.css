@@ -17,6 +17,18 @@
     padding: var(--space-lg);
     box-shadow: var(--shadow);
     margin-bottom: var(--space-xl);
+    position: relative;
+}
+
+.editingBanner {
+    background: var(--accent);
+    color: white;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--space-md);
 }
 
 .formGroup {
@@ -101,8 +113,13 @@
     color: var(--danger);
 }
 
+.formButtons {
+    display: flex;
+    gap: var(--space-sm);
+}
+
 .submitBtn {
-    width: 100%;
+    flex: 1;
     padding: var(--space-md);
     font-size: 1rem;
     font-weight: 600;
@@ -124,23 +141,58 @@
     cursor: not-allowed;
 }
 
-/* 開催一覧 */
+.cancelBtn {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 1rem;
+    font-weight: 600;
+    background: var(--gray-200);
+    color: var(--text-secondary);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.cancelBtn:hover {
+    background: var(--gray-300);
+}
+
+/* 開催セクション */
+.eventSection {
+    margin-bottom: var(--space-xl);
+}
+
 .sectionTitle {
     font-size: 1rem;
     font-weight: 700;
     margin-bottom: var(--space-md);
+    color: var(--text-primary);
 }
 
 .eventList {
-    margin-top: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
 }
 
 .eventCard {
     background: var(--bg-card);
     border-radius: var(--border-radius-sm);
     padding: var(--space-md);
-    margin-bottom: var(--space-sm);
     box-shadow: var(--shadow-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid var(--primary);
+}
+
+.eventCard.past {
+    opacity: 0.6;
+    border-left-color: var(--gray-400);
+}
+
+.eventMain {
+    flex: 1;
 }
 
 .eventDate {
@@ -157,8 +209,48 @@
     color: var(--text-secondary);
 }
 
+.eventActions {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.editBtn,
+.deleteBtn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.editBtn {
+    background: var(--gray-100);
+}
+
+.editBtn:hover {
+    background: var(--accent);
+}
+
+.deleteBtn {
+    background: var(--gray-100);
+}
+
+.deleteBtn:hover {
+    background: var(--danger);
+}
+
 .emptyState {
     text-align: center;
     padding: var(--space-xl);
     color: var(--text-muted);
+}
+
+.hint {
+    font-size: 0.875rem;
+    margin-top: var(--space-sm);
 }

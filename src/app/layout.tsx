@@ -3,8 +3,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "テニスクラブ",
-  description: "テニスクラブ運営管理アプリ - 試合組み合わせ・成績管理",
+  title: "御所テニスクラブ",
+  description: "御所テニスクラブ運営管理アプリ - 試合組み合わせ・成績管理",
   manifest: "/manifest.json",
 };
 

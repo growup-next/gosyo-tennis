@@ -9,7 +9,7 @@ export default function Home() {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             <span className={styles.heroIcon}>🎾</span>
-            テニスクラブ
+            御所テニスクラブ
           </h1>
           <p className={styles.heroSubtitle}>
             試合管理・ランキングシステム
