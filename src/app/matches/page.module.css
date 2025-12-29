@@ -11,6 +11,93 @@
     text-align: center;
 }
 
+/* 開催日選択 */
+.eventSelector {
+    margin-bottom: var(--space-md);
+}
+
+.label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.eventSelect {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 48px;
+    cursor: pointer;
+}
+
+.eventSelect:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.noEvent {
+    background: var(--gray-100);
+    padding: var(--space-lg);
+    border-radius: var(--border-radius);
+    text-align: center;
+    margin-bottom: var(--space-md);
+}
+
+.noEvent p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.link {
+    color: var(--primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+.eventInfo {
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    color: white;
+    padding: var(--space-md);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--space-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-md);
+    justify-content: center;
+    align-items: center;
+}
+
+.eventInfo.pastEvent {
+    background: linear-gradient(135deg, var(--gray-500), var(--gray-600));
+}
+
+.eventDate {
+    font-weight: 700;
+}
+
+.eventTime,
+.eventCourt {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.pastBadge {
+    background: rgba(255, 255, 255, 0.3);
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
 /* 情報バー */
 .infoBar {
     display: flex;

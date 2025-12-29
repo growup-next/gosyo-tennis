@@ -8,29 +8,64 @@ import { determineMatchFormat, determineWinner } from '@/lib/scoring';
 import { getCoinTossDisplayText } from '@/lib/coinToss';
 import styles from './page.module.css';
 
+interface StoredEvent {
+    id: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    courtNumber: number;
+}
+
 export default function MatchesPage() {
+    const [events, setEvents] = useState<StoredEvent[]>([]);
+    const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [matches, setMatches] = useState<Match[]>([]);
     const [presentMembers, setPresentMembers] = useState<Member[]>([]);
     const [attendances, setAttendances] = useState<Attendance[]>([]);
-    const [currentEvent, setCurrentEvent] = useState<{ id: string; date: string } | null>(null);
     const [matchFormat, setMatchFormat] = useState<'no-ad' | 'one-deuce'>('no-ad');
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // イベント読み込み
     useEffect(() => {
-        loadData();
+        loadEvents();
     }, []);
 
-    const loadData = () => {
-        // 現在のイベント
-        const eventStr = localStorage.getItem('current_event');
-        if (eventStr) {
-            setCurrentEvent(JSON.parse(eventStr));
+    // 選択されたイベントが変更されたらデータを読み込む
+    useEffect(() => {
+        if (selectedEventId) {
+            loadEventData(selectedEventId);
         }
+    }, [selectedEventId]);
 
+    const loadEvents = () => {
+        const stored = localStorage.getItem('tennis_events');
+        if (stored) {
+            const parsed: StoredEvent[] = JSON.parse(stored);
+            // 日付順にソート（新しい順）
+            const sorted = parsed.sort((a, b) =>
+                new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            setEvents(sorted);
+
+            // デフォルトで次の開催日（今日以降で最も近い日）を選択
+            const today = new Date().toISOString().split('T')[0];
+            const upcoming = sorted.filter(ev => ev.date >= today);
+            if (upcoming.length > 0) {
+                // 次の開催日（日付が近い順なので最後）
+                setSelectedEventId(upcoming[upcoming.length - 1].id);
+            } else if (sorted.length > 0) {
+                // 過去の日程しかない場合は最新を選択
+                setSelectedEventId(sorted[0].id);
+            }
+        }
+    };
+
+    const loadEventData = (eventId: string) => {
         // 出欠データ
         const attendancesStr = localStorage.getItem('tennis_attendances');
-        const loadedAttendances: Attendance[] = attendancesStr ? JSON.parse(attendancesStr) : [];
-        setAttendances(loadedAttendances);
+        const allAttendances: Attendance[] = attendancesStr ? JSON.parse(attendancesStr) : [];
+        const eventAttendances = allAttendances.filter(a => a.eventId === eventId);
+        setAttendances(eventAttendances);
 
         // 出席者を抽出
         const guestsStr = localStorage.getItem('tennis_guests');
@@ -38,7 +73,7 @@ export default function MatchesPage() {
         const allMembers = [...FIXED_MEMBERS, ...guests];
 
         const present = allMembers.filter(member => {
-            const attendance = loadedAttendances.find(a => a.memberId === member.id);
+            const attendance = eventAttendances.find(a => a.memberId === member.id);
             return attendance?.status === 'present';
         });
         setPresentMembers(present);
@@ -47,10 +82,14 @@ export default function MatchesPage() {
         const format = determineMatchFormat(present.length);
         setMatchFormat(format);
 
-        // 既存の試合データ
+        // 既存の試合データ（選択されたイベントのみ）
         const matchesStr = localStorage.getItem('tennis_matches');
         if (matchesStr) {
-            setMatches(JSON.parse(matchesStr));
+            const allMatches: Match[] = JSON.parse(matchesStr);
+            const eventMatches = allMatches.filter(m => m.eventId === eventId);
+            setMatches(eventMatches);
+        } else {
+            setMatches([]);
         }
     };
 
@@ -67,18 +106,22 @@ export default function MatchesPage() {
                 presentMembers,
                 attendances,
                 existingMatches: matches,
-                eventId: currentEvent?.id || 'temp',
+                eventId: selectedEventId,
             });
 
             if (newMatch) {
-                const updatedMatches = [...matches, newMatch];
-                setMatches(updatedMatches);
-                localStorage.setItem('tennis_matches', JSON.stringify(updatedMatches));
+                // 全試合データを更新
+                const allMatchesStr = localStorage.getItem('tennis_matches');
+                const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+                allMatches.push(newMatch);
+                localStorage.setItem('tennis_matches', JSON.stringify(allMatches));
+
+                setMatches(prev => [...prev, newMatch]);
             }
 
             setIsGenerating(false);
         }, 500);
-    }, [presentMembers, attendances, matches, currentEvent]);
+    }, [presentMembers, attendances, matches, selectedEventId]);
 
     const updateCoinToss = (matchId: string, field: keyof CoinTossResult, value: string) => {
         setMatches(prev => {
@@ -94,7 +137,13 @@ export default function MatchesPage() {
                 }
                 return m;
             });
-            localStorage.setItem('tennis_matches', JSON.stringify(updated));
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...updated]));
+
             return updated;
         });
     };
@@ -113,7 +162,13 @@ export default function MatchesPage() {
                 }
                 return m;
             });
-            localStorage.setItem('tennis_matches', JSON.stringify(updated));
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...updated]));
+
             return updated;
         });
     };
@@ -131,7 +186,13 @@ export default function MatchesPage() {
                 }
                 return m;
             });
-            localStorage.setItem('tennis_matches', JSON.stringify(updated));
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...updated]));
+
             return updated;
         });
     };
@@ -143,88 +204,165 @@ export default function MatchesPage() {
         return findMemberById(allMembers, id)?.name || id;
     };
 
+    const selectedEvent = events.find(e => e.id === selectedEventId);
+    const today = new Date().toISOString().split('T')[0];
+    const isPastEvent = selectedEvent ? selectedEvent.date < today : false;
+
+    // イベントを今後と過去に分ける
+    const upcomingEvents = events.filter(ev => ev.date >= today).reverse();
+    const pastEvents = events.filter(ev => ev.date < today);
+
     return (
         <div className={styles.container}>
             <h1 className={styles.pageTitle}>🎾 試合管理</h1>
 
-            {/* 情報バー */}
-            <div className={styles.infoBar}>
-                <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>出席者数</span>
-                    <span className={styles.infoValue}>{presentMembers.length}名</span>
+            {/* 開催日選択 */}
+            {events.length > 0 ? (
+                <div className={styles.eventSelector}>
+                    <label className={styles.label}>開催日を選択</label>
+                    <select
+                        className={styles.eventSelect}
+                        value={selectedEventId}
+                        onChange={(e) => setSelectedEventId(e.target.value)}
+                    >
+                        {upcomingEvents.length > 0 && (
+                            <optgroup label="📆 今後の開催">
+                                {upcomingEvents.map(event => (
+                                    <option key={event.id} value={event.id}>
+                                        {formatDate(event.date)} {event.startTime}〜 コート{event.courtNumber}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
+                        {pastEvents.length > 0 && (
+                            <optgroup label="📁 過去の開催">
+                                {pastEvents.map(event => (
+                                    <option key={event.id} value={event.id}>
+                                        {formatDate(event.date)} {event.startTime}〜 コート{event.courtNumber}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
+                    </select>
                 </div>
-                <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>試合形式</span>
-                    <span className={styles.infoValue}>
-                        {matchFormat === 'no-ad' ? 'ノーアド' : '1デュース'}
-                    </span>
+            ) : (
+                <div className={styles.noEvent}>
+                    <p>開催日が登録されていません</p>
+                    <a href="/schedule" className={styles.link}>開催日を登録する →</a>
                 </div>
-                <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>試合数</span>
-                    <span className={styles.infoValue}>{matches.length}</span>
-                </div>
-            </div>
-
-            {/* 試合形式切替 */}
-            <div className={styles.formatToggle}>
-                <button
-                    className={`${styles.formatBtn} ${matchFormat === 'no-ad' ? styles.active : ''}`}
-                    onClick={() => setMatchFormat('no-ad')}
-                >
-                    ノーアド
-                </button>
-                <button
-                    className={`${styles.formatBtn} ${matchFormat === 'one-deuce' ? styles.active : ''}`}
-                    onClick={() => setMatchFormat('one-deuce')}
-                >
-                    1デュース
-                </button>
-            </div>
-
-            {/* 試合生成ボタン */}
-            <button
-                className={styles.generateBtn}
-                onClick={generateMatch}
-                disabled={isGenerating || presentMembers.length < 4}
-            >
-                {isGenerating ? (
-                    <span className={styles.spinner}>⏳</span>
-                ) : (
-                    <>
-                        <span>🎲</span>
-                        <span>次の試合を生成</span>
-                    </>
-                )}
-            </button>
-
-            {presentMembers.length < 4 && (
-                <p className={styles.warning}>
-                    ⚠️ 4名以上の出席者が必要です（現在: {presentMembers.length}名）
-                </p>
             )}
 
-            {/* 試合一覧 */}
-            <div className={styles.matchList}>
-                {matches.slice().reverse().map(match => (
-                    <MatchCard
-                        key={match.id}
-                        match={match}
-                        getMemberName={getMemberName}
-                        onUpdateCoinToss={updateCoinToss}
-                        onUpdateScore={updateScore}
-                        onMarkAsNoGame={markAsNoGame}
-                    />
-                ))}
-            </div>
+            {selectedEvent && (
+                <>
+                    {/* 選択中の開催情報 */}
+                    <div className={`${styles.eventInfo} ${isPastEvent ? styles.pastEvent : ''}`}>
+                        <span className={styles.eventDate}>📅 {formatDateFull(selectedEvent.date)}</span>
+                        <span className={styles.eventTime}>🕐 {selectedEvent.startTime} 〜 {selectedEvent.endTime}</span>
+                        <span className={styles.eventCourt}>🎾 コート {selectedEvent.courtNumber}</span>
+                        {isPastEvent && <span className={styles.pastBadge}>過去</span>}
+                    </div>
 
-            {matches.length === 0 && presentMembers.length >= 4 && (
-                <div className={styles.emptyState}>
-                    <p>まだ試合がありません</p>
-                    <p>「次の試合を生成」ボタンを押してください</p>
-                </div>
+                    {/* 情報バー */}
+                    <div className={styles.infoBar}>
+                        <div className={styles.infoItem}>
+                            <span className={styles.infoLabel}>出席者数</span>
+                            <span className={styles.infoValue}>{presentMembers.length}名</span>
+                        </div>
+                        <div className={styles.infoItem}>
+                            <span className={styles.infoLabel}>試合形式</span>
+                            <span className={styles.infoValue}>
+                                {matchFormat === 'no-ad' ? 'ノーアド' : '1デュース'}
+                            </span>
+                        </div>
+                        <div className={styles.infoItem}>
+                            <span className={styles.infoLabel}>試合数</span>
+                            <span className={styles.infoValue}>{matches.length}</span>
+                        </div>
+                    </div>
+
+                    {/* 試合形式切替 */}
+                    <div className={styles.formatToggle}>
+                        <button
+                            className={`${styles.formatBtn} ${matchFormat === 'no-ad' ? styles.active : ''}`}
+                            onClick={() => setMatchFormat('no-ad')}
+                        >
+                            ノーアド
+                        </button>
+                        <button
+                            className={`${styles.formatBtn} ${matchFormat === 'one-deuce' ? styles.active : ''}`}
+                            onClick={() => setMatchFormat('one-deuce')}
+                        >
+                            1デュース
+                        </button>
+                    </div>
+
+                    {/* 試合生成ボタン */}
+                    <button
+                        className={styles.generateBtn}
+                        onClick={generateMatch}
+                        disabled={isGenerating || presentMembers.length < 4}
+                    >
+                        {isGenerating ? (
+                            <span className={styles.spinner}>⏳</span>
+                        ) : (
+                            <>
+                                <span>🎲</span>
+                                <span>次の試合を生成</span>
+                            </>
+                        )}
+                    </button>
+
+                    {presentMembers.length < 4 && (
+                        <p className={styles.warning}>
+                            ⚠️ 4名以上の出席者が必要です（現在: {presentMembers.length}名）
+                            <br />
+                            <a href="/attendance" className={styles.link}>出欠登録へ →</a>
+                        </p>
+                    )}
+
+                    {/* 試合一覧 */}
+                    <div className={styles.matchList}>
+                        {matches.slice().reverse().map(match => (
+                            <MatchCard
+                                key={match.id}
+                                match={match}
+                                getMemberName={getMemberName}
+                                onUpdateCoinToss={updateCoinToss}
+                                onUpdateScore={updateScore}
+                                onMarkAsNoGame={markAsNoGame}
+                            />
+                        ))}
+                    </div>
+
+                    {matches.length === 0 && presentMembers.length >= 4 && (
+                        <div className={styles.emptyState}>
+                            <p>まだ試合がありません</p>
+                            <p>「次の試合を生成」ボタンを押してください</p>
+                        </div>
+                    )}
+
+                    {matches.length === 0 && presentMembers.length === 0 && (
+                        <div className={styles.emptyState}>
+                            <p>出席者が登録されていません</p>
+                            <a href="/attendance" className={styles.link}>出欠登録へ →</a>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
+}
+
+function formatDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+    return `${date.getMonth() + 1}/${date.getDate()}(${weekDays[date.getDay()]})`;
+}
+
+function formatDateFull(dateStr: string): string {
+    const date = new Date(dateStr);
+    const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+    return `${date.getMonth() + 1}月${date.getDate()}日(${weekDays[date.getDay()]})`;
 }
 
 interface MatchCardProps {
