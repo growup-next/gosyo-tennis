@@ -51,7 +51,7 @@ export default function Home() {
       <section className={styles.membersSection}>
         <h2 className={styles.sectionTitle}>固定メンバー</h2>
         <div className={styles.memberGrid}>
-          {['足立', '今宮', '小島', '未森', '鈴鹿', '田中', '土田', '豊福', '西沢', '橋本', '宮城', '岩田'].map(name => (
+          {['足立', '今宮', '小島', '末森', '鈴鹿', '田中', '土田', '豊福', '西沢', '橋本', '宮城', '岩田'].map(name => (
             <div key={name} className={styles.memberChip}>
               {name}
             </div>

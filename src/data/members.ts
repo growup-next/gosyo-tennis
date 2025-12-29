@@ -5,7 +5,7 @@ export const FIXED_MEMBERS: Member[] = [
     { id: 'adachi', name: '足立', isGuest: false },
     { id: 'imamiya', name: '今宮', isGuest: false },
     { id: 'kojima', name: '小島', isGuest: false },
-    { id: 'mimori', name: '未森', isGuest: false },
+    { id: 'suemori', name: '末森', isGuest: false },
     { id: 'suzuka', name: '鈴鹿', isGuest: false },
     { id: 'tanaka', name: '田中', isGuest: false },
     { id: 'tsuchida', name: '土田', isGuest: false },
