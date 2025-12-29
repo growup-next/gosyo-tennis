@@ -217,7 +217,10 @@ export default function MatchesPage() {
         });
     };
 
-    const confirmMatch = (matchId: string) => {
+    const confirmMatch = async (matchId: string) => {
+        const matchToConfirm = matches.find(m => m.id === matchId);
+        if (!matchToConfirm) return;
+
         setMatches(prev => {
             const updated = prev.map(m => {
                 if (m.id === matchId) {
@@ -234,6 +237,59 @@ export default function MatchesPage() {
 
             return updated;
         });
+
+        // スプレッドシートに保存
+        try {
+            // 試合データを保存
+            await fetch('/api/sheets/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sheetName: 'Matches',
+                    data: {
+                        id: matchToConfirm.id,
+                        eventId: matchToConfirm.eventId,
+                        matchNumber: matchToConfirm.matchNumber,
+                        team1Player1: matchToConfirm.team1[0],
+                        team1Player2: matchToConfirm.team1[1],
+                        team2Player1: matchToConfirm.team2[0],
+                        team2Player2: matchToConfirm.team2[1],
+                        coinTossWinner: matchToConfirm.coinToss?.winner || '',
+                        coinTossChoice: matchToConfirm.coinToss?.winnerChoice || '',
+                        coinTossLoserSide: matchToConfirm.coinToss?.loserSide || '',
+                        isNoGame: matchToConfirm.isNoGame ? 'true' : 'false',
+                        noGameReason: matchToConfirm.noGameReason || '',
+                        isConfirmed: 'true',
+                        createdAt: matchToConfirm.createdAt,
+                    },
+                }),
+            });
+
+            // 結果データを保存（スコアがある場合）
+            if (matchToConfirm.score) {
+                await fetch('/api/sheets/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sheetName: 'Results',
+                        data: {
+                            matchId: matchToConfirm.id,
+                            eventId: matchToConfirm.eventId,
+                            team1Games: matchToConfirm.score.team1Games,
+                            team2Games: matchToConfirm.score.team2Games,
+                            winner: matchToConfirm.score.winner,
+                            updatedAt: new Date().toISOString(),
+                        },
+                    }),
+                });
+            }
+
+            console.log('Match saved to spreadsheet');
+        } catch (error) {
+            console.error('Failed to save match to spreadsheet:', error);
+            // ローカルには保存済みなので、エラーは通知のみ
+            alert('スプレッドシートへの保存に失敗しました。ローカルには保存されています。');
+        }
     };
 
     const resetMatch = (matchId: string) => {
