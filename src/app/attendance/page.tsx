@@ -129,10 +129,39 @@ export default function AttendancePage() {
                 }));
 
                 localStorage.setItem('tennis_attendances', JSON.stringify([...allAttendances, ...currentEventAttendances]));
+
+                // スプレッドシートにも保存
+                const updatedEntry = updated.find(a => a.id === memberId);
+                if (updatedEntry) {
+                    saveAttendanceToSheet(selectedEventId, updatedEntry);
+                }
             }
 
             return updated;
         });
+    };
+
+    const saveAttendanceToSheet = async (eventId: string, entry: AttendanceEntry) => {
+        try {
+            await fetch('/api/sheets/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sheetName: 'Attendance',
+                    data: {
+                        eventId: eventId,
+                        memberId: entry.id,
+                        status: entry.status,
+                        earlyLeave: entry.earlyLeave ? 'true' : 'false',
+                        earlyLeaveTime: entry.earlyLeaveTime || '',
+                        updatedAt: new Date().toISOString(),
+                    },
+                }),
+            });
+            console.log('Attendance saved to spreadsheet');
+        } catch (error) {
+            console.error('Failed to save attendance to spreadsheet:', error);
+        }
     };
 
     const addGuest = () => {
