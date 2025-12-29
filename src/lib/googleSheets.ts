@@ -3,7 +3,10 @@ import { Event, Attendance, Match, SheetRow } from '@/types';
 // Google Sheets API の設定
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
 const CLIENT_EMAIL = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
-const PRIVATE_KEY = process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, '\n');
+// Vercel環境変数では \n が文字列として格納されるため、実際の改行に変換
+const PRIVATE_KEY = process.env.GOOGLE_SHEETS_PRIVATE_KEY
+    ? process.env.GOOGLE_SHEETS_PRIVATE_KEY.split(String.raw`\n`).join('\n')
+    : undefined;
 
 // シート名定義
 export const SHEET_NAMES = {
