@@ -1,0 +1,253 @@
+.container {
+    padding: var(--space-md);
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.pageTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+    text-align: center;
+}
+
+.eventInfo {
+    background: var(--primary);
+    color: white;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    margin-bottom: var(--space-md);
+    font-weight: 500;
+}
+
+.noEvent {
+    background: var(--gray-100);
+    padding: var(--space-lg);
+    border-radius: var(--border-radius);
+    text-align: center;
+    margin-bottom: var(--space-md);
+}
+
+.noEvent p {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.link {
+    color: var(--primary);
+    font-weight: 500;
+}
+
+/* カウントバー */
+.countBar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--bg-card);
+    padding: var(--space-md);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.countLabel {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.countValue {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.countNote {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* メンバーカード */
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+}
+
+.memberCard {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.memberHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+}
+
+.memberName {
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.guestBadge {
+    background: var(--accent);
+    color: white;
+    font-size: 0.625rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.removeBtn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.removeBtn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* 出欠ボタン */
+.statusBtns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xs);
+}
+
+.statusBtn {
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.statusBtn.present {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    color: white;
+}
+
+.statusBtn.absent {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+
+.statusBtn.undecided {
+    background: var(--gray-400);
+    border-color: var(--gray-400);
+    color: white;
+}
+
+/* 早退セクション */
+.earlyLeaveSection {
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.checkboxLabel input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--warning);
+}
+
+.earlyLeaveTime {
+    flex: 1;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+/* ゲストセクション */
+.guestSection {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: var(--space-lg);
+    box-shadow: var(--shadow);
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+}
+
+.guestForm {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.guestInput {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 1rem;
+}
+
+.guestInput:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.addGuestBtn {
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.addGuestBtn:hover:not(:disabled) {
+    background: #d97706;
+}
+
+.addGuestBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.guestNote {
+    margin-top: var(--space-sm);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}

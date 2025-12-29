@@ -1,0 +1,399 @@
+.container {
+    padding: var(--space-md);
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.pageTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+    text-align: center;
+}
+
+/* 情報バー */
+.infoBar {
+    display: flex;
+    justify-content: space-around;
+    background: var(--bg-card);
+    padding: var(--space-md);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--space-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.infoItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.infoLabel {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.infoValue {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* 試合形式切替 */
+.formatToggle {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.formatBtn {
+    flex: 1;
+    padding: var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.formatBtn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* 試合生成ボタン */
+.generateBtn {
+    width: 100%;
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    font-size: 1.125rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary), #7c3aed);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-bottom: var(--space-md);
+}
+
+.generateBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.generateBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.warning {
+    text-align: center;
+    color: var(--warning);
+    font-size: 0.875rem;
+    margin-bottom: var(--space-md);
+}
+
+/* 試合カード */
+.matchList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.matchCard {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: var(--space-md);
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--primary);
+}
+
+.matchCard.noGame {
+    border-left-color: var(--danger);
+    opacity: 0.7;
+}
+
+.matchHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.matchNumber {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.noGameBadge {
+    background: var(--danger);
+    color: white;
+    font-size: 0.625rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.completedBadge {
+    background: var(--secondary);
+    color: white;
+    font-size: 0.625rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* チーム対戦表示 */
+.versus {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+}
+
+.team {
+    flex: 1;
+    padding: var(--space-sm);
+    background: var(--gray-50);
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+}
+
+.team.winner {
+    background: rgba(16, 185, 129, 0.1);
+    border: 2px solid var(--secondary);
+}
+
+.teamNames {
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.teamScore {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-top: var(--space-xs);
+}
+
+.vsLabel {
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* コイントス */
+.coinToss {
+    background: var(--gray-50);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.coinTossTitle {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-sm);
+}
+
+.coinTossResult {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: pre-line;
+    margin-bottom: var(--space-sm);
+}
+
+.coinTossOptions {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.optionGroup {
+    flex: 1;
+}
+
+.optionGroup label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.optionGroup select {
+    width: 100%;
+    padding: var(--space-xs);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+/* スコア入力 */
+.scoreInput {
+    margin-bottom: var(--space-md);
+}
+
+.scoreInputTitle {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-sm);
+}
+
+.scoreRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+}
+
+.scoreTeam {
+    text-align: center;
+}
+
+.scoreTeam>span {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.scoreButtons {
+    display: flex;
+    gap: 4px;
+}
+
+.scoreBtn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.scoreBtn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.scoreDash {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+/* ノーゲームボタン */
+.noGameBtn {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1px solid var(--danger);
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    color: var(--danger);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.noGameBtn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.noGameReason {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* モーダル */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-md);
+}
+
+.modalContent {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: var(--space-lg);
+    width: 100%;
+    max-width: 320px;
+}
+
+.modalContent h3 {
+    font-size: 1rem;
+    margin-bottom: var(--space-md);
+}
+
+.modalInput {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--space-md);
+}
+
+.modalButtons {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.modalButtons button {
+    flex: 1;
+    padding: var(--space-sm);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+}
+
+.modalButtons button:first-child {
+    background: var(--gray-100);
+    border: 1px solid var(--border-color);
+}
+
+.confirmBtn {
+    background: var(--danger) !important;
+    color: white !important;
+    border: none !important;
+}
+
+/* 空状態 */
+.emptyState {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--text-muted);
+}
+
+.emptyState p {
+    margin-bottom: var(--space-sm);
+}

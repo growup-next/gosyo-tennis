@@ -1,0 +1,245 @@
+.container {
+    padding: var(--space-md);
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.pageTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+    text-align: center;
+}
+
+/* 期間タブ */
+.periodTabs {
+    display: flex;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-lg);
+    background: var(--gray-100);
+    padding: 4px;
+    border-radius: var(--border-radius);
+}
+
+.periodTab {
+    flex: 1;
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.periodTab.active {
+    background: white;
+    color: var(--text-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.loading {
+    text-align: center;
+    padding: var(--space-2xl);
+    color: var(--text-muted);
+}
+
+/* 表彰台 */
+.podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-md);
+}
+
+.podiumItem {
+    flex: 1;
+    text-align: center;
+    padding: var(--space-md);
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.podiumItem[data-rank="1"] {
+    transform: translateY(-10px);
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.podiumItem[data-rank="2"] {
+    background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+}
+
+.podiumItem[data-rank="3"] {
+    background: linear-gradient(135deg, #fef3e2, #fed7aa);
+}
+
+.podiumRank {
+    font-size: 2rem;
+    margin-bottom: var(--space-xs);
+}
+
+.podiumName {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: var(--space-xs);
+}
+
+.podiumStats {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ランキングテーブル */
+.rankingTable {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: var(--space-xl);
+}
+
+.tableHeader {
+    display: flex;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.tableRow {
+    display: flex;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+}
+
+.tableRow:last-child {
+    border-bottom: none;
+}
+
+.tableRow.topThree {
+    background: var(--gray-50);
+}
+
+.colRank {
+    width: 50px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.colName {
+    flex: 1;
+    font-weight: 500;
+}
+
+.colMatches {
+    width: 50px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.colRecord {
+    width: 60px;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.colRate {
+    width: 50px;
+    text-align: right;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.emptyState {
+    padding: var(--space-2xl);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* ゲストセクション */
+.guestSection {
+    margin-bottom: var(--space-xl);
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: var(--space-md);
+}
+
+.guestList {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.guestRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.guestRow:last-child {
+    border-bottom: none;
+}
+
+.guestName {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.guestName::before {
+    content: '👤';
+    font-size: 0.875rem;
+}
+
+.guestStats {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* 統計サマリー */
+.summarySection {
+    margin-bottom: var(--space-xl);
+}
+
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+}
+
+.summaryCard {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-md);
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.summaryLabel {
+    display: block;
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+.summaryValue {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
