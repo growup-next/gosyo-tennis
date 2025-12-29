@@ -77,7 +77,7 @@ export default function Home() {
             <span className={styles.ruleIcon}>⚡</span>
             <div>
               <strong>デュースルール</strong>
-              <p>6名以上：ノーアド / 6名以下：1デュース</p>
+              <p>6名以上：ノーアド / 6名未満：1デュース</p>
             </div>
           </div>
           <div className={styles.ruleItem}>

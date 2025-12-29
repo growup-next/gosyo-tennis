@@ -2,7 +2,7 @@ import { Match, PlayerStats, Member } from '@/types';
 
 /**
  * 試合形式を決定（出席人数に基づく）
- * 6名以上：ノーアド、6名以下：1デュース
+ * 6名以上：ノーアド、6名未満：1デュース
  */
 export function determineMatchFormat(presentCount: number): 'no-ad' | 'one-deuce' {
     return presentCount > 6 ? 'no-ad' : 'one-deuce';
