@@ -79,6 +79,78 @@ async function createJWT(): Promise<string> {
 }
 
 /**
+ * シートが存在するか確認し、なければ作成する
+ */
+async function ensureSheetExists(accessToken: string): Promise<void> {
+    console.log('Checking if sheet exists:', SHEET_NAME);
+
+    // スプレッドシートの情報を取得
+    const infoResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        }
+    );
+
+    const infoData = await infoResponse.json();
+
+    if (!infoResponse.ok) {
+        console.error('Failed to get spreadsheet info:', infoData);
+        throw new Error(`Failed to get spreadsheet info: ${JSON.stringify(infoData)}`);
+    }
+
+    // シートが存在するか確認
+    const sheets = infoData.sheets || [];
+    const sheetExists = sheets.some(
+        (s: { properties?: { title?: string } }) => s.properties?.title === SHEET_NAME
+    );
+
+    console.log('Available sheets:', sheets.map((s: { properties?: { title?: string } }) => s.properties?.title));
+    console.log('Sheet exists:', sheetExists);
+
+    if (!sheetExists) {
+        console.log('Creating sheet:', SHEET_NAME);
+
+        // シートを作成
+        const createResponse = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
+            {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    requests: [
+                        {
+                            addSheet: {
+                                properties: {
+                                    title: SHEET_NAME,
+                                },
+                            },
+                        },
+                    ],
+                }),
+            }
+        );
+
+        const createData = await createResponse.json();
+        console.log('Create sheet response:', JSON.stringify(createData));
+
+        if (!createResponse.ok) {
+            throw new Error(`Failed to create sheet: ${JSON.stringify(createData)}`);
+        }
+
+        console.log('Sheet created successfully');
+    }
+
+    // ヘッダー行を確認・設定
+    await ensureHeaderRow(accessToken);
+}
+
+/**
  * シートのヘッダー行を確認・設定
  */
 async function ensureHeaderRow(accessToken: string): Promise<void> {
@@ -86,7 +158,7 @@ async function ensureHeaderRow(accessToken: string): Promise<void> {
 
     // 現在のヘッダー行を取得
     const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:F1`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A1:F1`,
         {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -102,7 +174,7 @@ async function ensureHeaderRow(accessToken: string): Promise<void> {
         console.log('Header row is empty, setting headers:', HEADERS);
 
         const setResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A1:F1?valueInputOption=USER_ENTERED`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A1:F1?valueInputOption=USER_ENTERED`,
             {
                 method: 'PUT',
                 headers: {
@@ -152,8 +224,8 @@ export async function POST(request: NextRequest) {
         const accessToken = await getAccessToken();
         console.log('Authentication successful');
 
-        // ヘッダー行を確認・設定
-        await ensureHeaderRow(accessToken);
+        // シートの存在確認・作成とヘッダー行設定
+        await ensureSheetExists(accessToken);
 
         // データを追加
         const rowData = [
@@ -168,7 +240,7 @@ export async function POST(request: NextRequest) {
         console.log('Appending row:', rowData);
 
         const appendResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
             {
                 method: 'POST',
                 headers: {
@@ -225,7 +297,7 @@ export async function GET() {
         console.log('Authentication successful');
 
         const response = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
