@@ -17,7 +17,7 @@ export default function RankingsPage() {
         loadRankings();
     }, [period]);
 
-    const loadRankings = () => {
+    const loadRankings = async () => {
         setIsLoading(true);
 
         // 試合データを取得
@@ -38,6 +38,44 @@ export default function RankingsPage() {
 
         setRankings(ranked);
         setIsLoading(false);
+
+        // スプレッドシートにランキングを保存（確定済みの試合がある場合のみ）
+        const confirmedMatches = filteredMatches.filter(m => m.isConfirmed && m.score);
+        if (confirmedMatches.length > 0) {
+            saveRankingsToSheet(ranked, period);
+        }
+    };
+
+    const saveRankingsToSheet = async (rankings: PlayerStats[], period: Period) => {
+        try {
+            // 各プレイヤーのランキングを保存
+            for (const player of rankings) {
+                if (player.matchesPlayed > 0) {
+                    await fetch('/api/sheets/data', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            sheetName: 'Rankings',
+                            data: {
+                                memberId: player.memberId,
+                                memberName: player.memberName,
+                                isGuest: player.isGuest ? 'true' : 'false',
+                                matchesPlayed: player.matchesPlayed,
+                                wins: player.wins,
+                                losses: player.losses,
+                                winRate: player.winRate,
+                                rank: player.rank || 0,
+                                period: period,
+                                updatedAt: new Date().toISOString(),
+                            },
+                        }),
+                    });
+                }
+            }
+            console.log('Rankings saved to spreadsheet');
+        } catch (error) {
+            console.error('Failed to save rankings to spreadsheet:', error);
+        }
     };
 
     const filterMatchesByPeriod = (matches: Match[], period: Period): Match[] => {

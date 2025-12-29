@@ -12,6 +12,7 @@ const SHEETS = {
     Matches: ['id', 'eventId', 'matchNumber', 'team1Player1', 'team1Player2', 'team2Player1', 'team2Player2', 'coinTossWinner', 'coinTossChoice', 'coinTossLoserSide', 'isNoGame', 'noGameReason', 'isConfirmed', 'createdAt'],
     Results: ['matchId', 'eventId', 'team1Games', 'team2Games', 'winner', 'updatedAt'],
     Attendance: ['eventId', 'memberId', 'status', 'earlyLeave', 'earlyLeaveTime', 'updatedAt'],
+    Rankings: ['memberId', 'memberName', 'isGuest', 'matchesPlayed', 'wins', 'losses', 'winRate', 'rank', 'period', 'updatedAt'],
 };
 
 type SheetName = keyof typeof SHEETS;
