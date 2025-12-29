@@ -474,6 +474,78 @@
     border: none !important;
 }
 
+.deleteBtn {
+    background: var(--danger) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.modalText {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-md);
+}
+
+/* 試合アクションボタン */
+.matchActions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.confirmMatchBtn {
+    flex: 1;
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    background: var(--secondary);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.confirmMatchBtn:hover {
+    background: #059669;
+}
+
+.editMatchBtn {
+    flex: 1;
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.editMatchBtn:hover {
+    background: #d97706;
+}
+
+.deleteMatchBtn {
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.deleteMatchBtn:hover {
+    background: var(--danger);
+    color: white;
+}
+
 /* 空状態 */
 .emptyState {
     text-align: center;

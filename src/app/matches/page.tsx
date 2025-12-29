@@ -197,6 +197,64 @@ export default function MatchesPage() {
         });
     };
 
+    const deleteMatch = (matchId: string) => {
+        setMatches(prev => {
+            const updated = prev.filter(m => m.id !== matchId);
+
+            // 試合番号を振り直す
+            const renumbered = updated.map((m, idx) => ({
+                ...m,
+                matchNumber: idx + 1,
+            }));
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...renumbered]));
+
+            return renumbered;
+        });
+    };
+
+    const confirmMatch = (matchId: string) => {
+        setMatches(prev => {
+            const updated = prev.map(m => {
+                if (m.id === matchId) {
+                    return { ...m, isConfirmed: true };
+                }
+                return m;
+            });
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...updated]));
+
+            return updated;
+        });
+    };
+
+    const resetMatch = (matchId: string) => {
+        setMatches(prev => {
+            const updated = prev.map(m => {
+                if (m.id === matchId) {
+                    return { ...m, score: undefined, isConfirmed: false, isNoGame: false, noGameReason: undefined };
+                }
+                return m;
+            });
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...updated]));
+
+            return updated;
+        });
+    };
+
     const getMemberName = (id: string): string => {
         const guestsStr = localStorage.getItem('tennis_guests');
         const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
@@ -330,6 +388,9 @@ export default function MatchesPage() {
                                 onUpdateCoinToss={updateCoinToss}
                                 onUpdateScore={updateScore}
                                 onMarkAsNoGame={markAsNoGame}
+                                onConfirm={confirmMatch}
+                                onReset={resetMatch}
+                                onDelete={deleteMatch}
                             />
                         ))}
                     </div>
@@ -371,6 +432,9 @@ interface MatchCardProps {
     onUpdateCoinToss: (matchId: string, field: keyof CoinTossResult, value: string) => void;
     onUpdateScore: (matchId: string, team1Games: number, team2Games: number) => void;
     onMarkAsNoGame: (matchId: string, reason: string) => void;
+    onConfirm: (matchId: string) => void;
+    onReset: (matchId: string) => void;
+    onDelete: (matchId: string) => void;
 }
 
 function MatchCard({
@@ -379,9 +443,13 @@ function MatchCard({
     onUpdateCoinToss,
     onUpdateScore,
     onMarkAsNoGame,
+    onConfirm,
+    onReset,
+    onDelete,
 }: MatchCardProps) {
     const [showNoGameModal, setShowNoGameModal] = useState(false);
     const [noGameReason, setNoGameReason] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const team1Names = match.team1.map(getMemberName);
     const team2Names = match.team2.map(getMemberName);
@@ -391,6 +459,13 @@ function MatchCard({
         setShowNoGameModal(false);
         setNoGameReason('');
     };
+
+    const handleDelete = () => {
+        onDelete(match.id);
+        setShowDeleteConfirm(false);
+    };
+
+    const isEditable = !match.isConfirmed;
 
     return (
         <div className={`${styles.matchCard} ${match.isNoGame ? styles.noGame : ''}`}>
@@ -499,7 +574,7 @@ function MatchCard({
             )}
 
             {/* ノーゲームボタン */}
-            {!match.isNoGame && !match.score && (
+            {!match.isNoGame && !match.score && isEditable && (
                 <button
                     className={styles.noGameBtn}
                     onClick={() => setShowNoGameModal(true)}
@@ -513,6 +588,37 @@ function MatchCard({
                     理由: {match.noGameReason}
                 </div>
             )}
+
+            {/* アクションボタン */}
+            <div className={styles.matchActions}>
+                {/* 確定ボタン */}
+                {!match.isConfirmed && (match.score || match.isNoGame) && (
+                    <button
+                        className={styles.confirmMatchBtn}
+                        onClick={() => onConfirm(match.id)}
+                    >
+                        ✓ 確定
+                    </button>
+                )}
+
+                {/* 編集ボタン（確定済みの場合のみ表示） */}
+                {match.isConfirmed && (
+                    <button
+                        className={styles.editMatchBtn}
+                        onClick={() => onReset(match.id)}
+                    >
+                        ✏️ 編集
+                    </button>
+                )}
+
+                {/* 削除ボタン */}
+                <button
+                    className={styles.deleteMatchBtn}
+                    onClick={() => setShowDeleteConfirm(true)}
+                >
+                    🗑️ 削除
+                </button>
+            </div>
 
             {/* ノーゲームモーダル */}
             {showNoGameModal && (
@@ -529,6 +635,20 @@ function MatchCard({
                         <div className={styles.modalButtons}>
                             <button onClick={() => setShowNoGameModal(false)}>キャンセル</button>
                             <button onClick={handleNoGame} className={styles.confirmBtn}>確定</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 削除確認モーダル */}
+            {showDeleteConfirm && (
+                <div className={styles.modal}>
+                    <div className={styles.modalContent}>
+                        <h3>試合を削除しますか？</h3>
+                        <p className={styles.modalText}>第{match.matchNumber}試合を削除します。この操作は取り消せません。</p>
+                        <div className={styles.modalButtons}>
+                            <button onClick={() => setShowDeleteConfirm(false)}>キャンセル</button>
+                            <button onClick={handleDelete} className={styles.deleteBtn}>削除する</button>
                         </div>
                     </div>
                 </div>

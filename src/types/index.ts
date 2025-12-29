@@ -51,6 +51,7 @@ export interface Match {
   score?: Score;
   isNoGame: boolean;
   noGameReason?: string;
+  isConfirmed?: boolean;  // 試合確定フラグ
   createdAt: string;
 }
 
