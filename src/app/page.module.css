@@ -134,7 +134,7 @@
 
 .memberChip {
   background: var(--gray-100);
-  color: var(--text-primary);
+  color: #1a1a1a;
   padding: var(--space-xs) var(--space-md);
   border-radius: 9999px;
   font-size: 0.875rem;
