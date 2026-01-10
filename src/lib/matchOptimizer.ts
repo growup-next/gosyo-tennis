@@ -13,6 +13,7 @@ interface PlayerScore {
     score: number;
     matchCount: number;
     lastMatchNumber: number;
+    consecutiveRests: number; // 連続休憩回数
     isEarlyLeaver: boolean;
     earlyLeaveTime?: string;
     earlyLeaveMatchCount: number;
@@ -26,9 +27,37 @@ interface PlayerScore {
  * 2. 同一ペアの連続発生を抑制
  * 3. 同一対戦カードの偏りを軽減
  * 4. 同一人物が2試合以上連続出場しないよう極力回避
- * 5. 早退予定者を優先的に試合に割り当て
- * 6. 早退者について最低2試合出場保証
+ * 5. 3連続休憩を絶対に回避
+ * 6. 早退予定者を優先的に試合に割り当て
+ * 7. 早退者について最低2試合出場保証
  */
+
+/**
+ * プレイヤーの連続休憩回数を計算
+ */
+function calculateConsecutiveRests(
+    playerId: string,
+    matches: Match[],
+    totalPlayers: number
+): number {
+    if (matches.length === 0) return 0;
+
+    // 直近の試合から遡って、連続何回休憩しているか計算
+    let consecutiveRests = 0;
+    const sortedMatches = [...matches].sort((a, b) => b.matchNumber - a.matchNumber);
+
+    for (const match of sortedMatches) {
+        if (match.isNoGame) continue;
+
+        const isInMatch = match.team1.includes(playerId) || match.team2.includes(playerId);
+        if (isInMatch) {
+            break; // 出場した試合が見つかったら終了
+        }
+        consecutiveRests++;
+    }
+
+    return consecutiveRests;
+}
 
 /**
  * プレイヤースコア初期化
@@ -44,12 +73,18 @@ function initializePlayerScores(
         const attendance = attendances.find(a => a.memberId === member.id);
         const matchCount = countPlayerMatches(member.id, existingMatches);
         const lastMatch = getLastMatchNumber(member.id, existingMatches);
+        const consecutiveRests = calculateConsecutiveRests(
+            member.id,
+            existingMatches,
+            presentMembers.length
+        );
 
         scores.set(member.id, {
             memberId: member.id,
             score: 0,
             matchCount,
             lastMatchNumber: lastMatch,
+            consecutiveRests,
             isEarlyLeaver: attendance?.earlyLeave || false,
             earlyLeaveTime: attendance?.earlyLeaveTime,
             earlyLeaveMatchCount: matchCount,
@@ -157,20 +192,23 @@ function calculateCombinationScore(
     team2: [string, string],
     playerScores: Map<string, PlayerScore>,
     existingMatches: Match[],
-    nextMatchNumber: number
+    nextMatchNumber: number,
+    allPlayerIds: string[]
 ): number {
     let score = 0;
     const allPlayers = [...team1, ...team2];
+    const restingPlayers = allPlayerIds.filter(p => !allPlayers.includes(p));
 
     // 1. 試合数均等化ボーナス（試合数が少ない人ほど高スコア）
-    const minMatchCount = Math.min(
-        ...allPlayers.map(p => playerScores.get(p)?.matchCount || 0)
-    );
+    const allMatchCounts = allPlayerIds.map(p => playerScores.get(p)?.matchCount || 0);
+    const minMatchCount = Math.min(...allMatchCounts);
+    const maxMatchCount = Math.max(...allMatchCounts);
+
     allPlayers.forEach(p => {
         const playerScore = playerScores.get(p);
         if (playerScore) {
             const matchDiff = playerScore.matchCount - minMatchCount;
-            score -= matchDiff * 100; // 試合数差がある場合はペナルティ
+            score -= matchDiff * 150; // 試合数差がある場合はペナルティ（強化）
         }
     });
 
@@ -185,7 +223,28 @@ function calculateCombinationScore(
         }
     });
 
-    // 3. 早退者優先ボーナス
+    // 3. 連続休憩対策（重要！）
+    // 出場するプレイヤーで連続休憩している人にボーナス
+    allPlayers.forEach(p => {
+        const playerScore = playerScores.get(p);
+        if (playerScore) {
+            if (playerScore.consecutiveRests >= 2) {
+                score += 500; // 2連続休憩している人を優先（強力ボーナス）
+            } else if (playerScore.consecutiveRests >= 1) {
+                score += 200; // 1回休憩している人にもボーナス
+            }
+        }
+    });
+
+    // 休憩するプレイヤーが3連続休憩になる場合は絶対回避
+    restingPlayers.forEach(p => {
+        const playerScore = playerScores.get(p);
+        if (playerScore && playerScore.consecutiveRests >= 2) {
+            score -= 10000; // 3連続休憩になる場合は致命的ペナルティ
+        }
+    });
+
+    // 4. 早退者優先ボーナス
     allPlayers.forEach(p => {
         const playerScore = playerScores.get(p);
         if (playerScore?.isEarlyLeaver) {
@@ -200,12 +259,12 @@ function calculateCombinationScore(
         }
     });
 
-    // 4. 同一ペア抑制
+    // 5. 同一ペア抑制
     const team1PairCount = getPairCount(team1[0], team1[1], existingMatches);
     const team2PairCount = getPairCount(team2[0], team2[1], existingMatches);
     score -= (team1PairCount + team2PairCount) * 50;
 
-    // 5. 同一対戦カード抑制
+    // 6. 同一対戦カード抑制
     const matchupCount = getMatchupCount(team1, team2, existingMatches);
     score -= matchupCount * 150;
 
@@ -246,7 +305,8 @@ export function generateNextMatch(context: MatchGenerationContext): Match | null
                 pattern.team2,
                 playerScores,
                 existingMatches,
-                nextMatchNumber
+                nextMatchNumber,
+                playerIds
             );
 
             if (score > bestScore) {
