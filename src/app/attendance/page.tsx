@@ -24,6 +24,7 @@ export default function AttendancePage() {
     const [selectedEventId, setSelectedEventId] = useState<string>('');
     const [attendances, setAttendances] = useState<AttendanceEntry[]>([]);
     const [guestName, setGuestName] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
     // イベント読み込み
     useEffect(() => {
@@ -42,21 +43,65 @@ export default function AttendancePage() {
         }
     }, [selectedEventId, events]);
 
-    const loadEvents = () => {
-        const stored = localStorage.getItem('tennis_events');
-        if (stored) {
-            const parsed: StoredEvent[] = JSON.parse(stored);
-            const today = new Date().toISOString().split('T')[0];
-            // 今日以降のイベントのみ、日付順にソート
-            const upcoming = parsed
-                .filter(ev => ev.date >= today)
-                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            setEvents(upcoming);
+    const loadEvents = async () => {
+        setIsLoading(true);
+        try {
+            // スプレッドシートからデータを取得
+            const response = await fetch('/api/sheets/schedule');
+            const data = await response.json();
 
-            // デフォルトで最初のイベントを選択
-            if (upcoming.length > 0 && !selectedEventId) {
-                setSelectedEventId(upcoming[0].id);
+            const today = new Date().toISOString().split('T')[0];
+
+            if (response.ok && data.events && data.events.length > 0) {
+                const parsed: StoredEvent[] = data.events.map((ev: Record<string, string>) => ({
+                    id: ev.id,
+                    date: ev.date,
+                    startTime: ev.startTime,
+                    endTime: ev.endTime,
+                    courtNumber: parseInt(ev.courtNumber, 10) || 1,
+                }));
+                const upcoming = parsed
+                    .filter(ev => ev.date >= today)
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                setEvents(upcoming);
+                localStorage.setItem('tennis_events', JSON.stringify(parsed));
+
+                if (upcoming.length > 0 && !selectedEventId) {
+                    setSelectedEventId(upcoming[0].id);
+                }
+            } else {
+                // フォールバック: ローカルストレージから読み込み
+                const stored = localStorage.getItem('tennis_events');
+                if (stored) {
+                    const parsed: StoredEvent[] = JSON.parse(stored);
+                    const upcoming = parsed
+                        .filter(ev => ev.date >= today)
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    setEvents(upcoming);
+
+                    if (upcoming.length > 0 && !selectedEventId) {
+                        setSelectedEventId(upcoming[0].id);
+                    }
+                }
             }
+        } catch (error) {
+            console.error('Failed to load events from spreadsheet:', error);
+            // エラー時: ローカルストレージから読み込み
+            const stored = localStorage.getItem('tennis_events');
+            if (stored) {
+                const parsed: StoredEvent[] = JSON.parse(stored);
+                const today = new Date().toISOString().split('T')[0];
+                const upcoming = parsed
+                    .filter(ev => ev.date >= today)
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                setEvents(upcoming);
+
+                if (upcoming.length > 0 && !selectedEventId) {
+                    setSelectedEventId(upcoming[0].id);
+                }
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 

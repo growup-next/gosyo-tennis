@@ -20,29 +20,82 @@ export default function RankingsPage() {
     const loadRankings = async () => {
         setIsLoading(true);
 
-        // 試合データを取得
-        const matchesStr = localStorage.getItem('tennis_matches');
-        const matches: Match[] = matchesStr ? JSON.parse(matchesStr) : [];
+        try {
+            // スプレッドシートから試合データを取得
+            const matchesResponse = await fetch('/api/sheets/data?sheet=Matches');
+            const matchesData = await matchesResponse.json();
 
-        // ゲストを含む全メンバー
-        const guestsStr = localStorage.getItem('tennis_guests');
-        const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
-        const allMembers = [...FIXED_MEMBERS, ...guests];
+            const resultsResponse = await fetch('/api/sheets/data?sheet=Results');
+            const resultsData = await resultsResponse.json();
 
-        // 期間でフィルタリング（実際の実装ではイベント日付でフィルタ）
-        const filteredMatches = filterMatchesByPeriod(matches, period);
+            let matches: Match[] = [];
 
-        // 成績を計算
-        const stats = calculatePlayerStats(filteredMatches, allMembers);
-        const ranked = calculateRankings(stats);
+            if (matchesResponse.ok && matchesData.data && matchesData.data.length > 0 &&
+                resultsResponse.ok && resultsData.data) {
+                // スプレッドシートのデータをMatch型に変換
+                matches = matchesData.data.map((row: Record<string, string>) => {
+                    const result = resultsData.data.find((r: Record<string, string>) => r.matchId === row.id);
+                    return {
+                        id: row.id,
+                        eventId: row.eventId,
+                        matchNumber: parseInt(row.matchNumber, 10) || 0,
+                        team1: [row.team1Player1, row.team1Player2] as [string, string],
+                        team2: [row.team2Player1, row.team2Player2] as [string, string],
+                        isNoGame: row.isNoGame === 'true',
+                        noGameReason: row.noGameReason || undefined,
+                        isConfirmed: row.isConfirmed === 'true',
+                        createdAt: row.createdAt,
+                        score: result ? {
+                            team1Games: parseInt(result.team1Games, 10) || 0,
+                            team2Games: parseInt(result.team2Games, 10) || 0,
+                            winner: result.winner as 'team1' | 'team2',
+                        } : undefined,
+                    };
+                });
+                // ローカルストレージにキャッシュ
+                localStorage.setItem('tennis_matches', JSON.stringify(matches));
+            } else {
+                // フォールバック: ローカルストレージから読み込み
+                const matchesStr = localStorage.getItem('tennis_matches');
+                matches = matchesStr ? JSON.parse(matchesStr) : [];
+            }
 
-        setRankings(ranked);
-        setIsLoading(false);
+            // ゲストを含む全メンバー
+            const guestsStr = localStorage.getItem('tennis_guests');
+            const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
+            const allMembers = [...FIXED_MEMBERS, ...guests];
 
-        // スプレッドシートにランキングを保存（確定済みの試合がある場合のみ）
-        const confirmedMatches = filteredMatches.filter(m => m.isConfirmed && m.score);
-        if (confirmedMatches.length > 0) {
-            saveRankingsToSheet(ranked, period);
+            // 期間でフィルタリング
+            const filteredMatches = filterMatchesByPeriod(matches, period);
+
+            // 成績を計算
+            const stats = calculatePlayerStats(filteredMatches, allMembers);
+            const ranked = calculateRankings(stats);
+
+            setRankings(ranked);
+
+            // スプレッドシートにランキングを保存（確定済みの試合がある場合のみ）
+            const confirmedMatches = filteredMatches.filter(m => m.isConfirmed && m.score);
+            if (confirmedMatches.length > 0) {
+                saveRankingsToSheet(ranked, period);
+            }
+        } catch (error) {
+            console.error('Failed to load from spreadsheet:', error);
+            // エラー時: ローカルストレージから読み込み
+            const matchesStr = localStorage.getItem('tennis_matches');
+            const matches: Match[] = matchesStr ? JSON.parse(matchesStr) : [];
+
+            const guestsStr = localStorage.getItem('tennis_guests');
+            const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
+            const allMembers = [...FIXED_MEMBERS, ...guests];
+
+            const filteredMatches = filterMatchesByPeriod(matches, period);
+            const stats = calculatePlayerStats(filteredMatches, allMembers);
+            const ranked = calculateRankings(stats);
+
+            setRankings(ranked);
+        } finally {
+            setIsLoading(false);
         }
     };
 

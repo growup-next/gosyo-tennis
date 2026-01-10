@@ -556,3 +556,72 @@
 .emptyState p {
     margin-bottom: var(--space-sm);
 }
+
+/* 組み合わせ変更ボタン */
+.editTeamBtn {
+    width: 100%;
+    padding: var(--space-sm);
+    margin-bottom: var(--space-md);
+    border: 1px dashed var(--primary);
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.editTeamBtn:hover {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+/* チーム編集モーダル */
+.teamEditSection {
+    margin-bottom: var(--space-md);
+}
+
+.teamEditLabel {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-sm);
+}
+
+.teamEditRow {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.memberSelect {
+    flex: 1;
+    padding: var(--space-sm);
+    font-size: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.memberSelect:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.errorText {
+    color: var(--danger);
+    font-size: 0.875rem;
+    margin-bottom: var(--space-md);
+    padding: var(--space-sm);
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: var(--border-radius-sm);
+}
+
+.applyBtn {
+    background: var(--primary) !important;
+    color: white !important;
+    border: none !important;
+}

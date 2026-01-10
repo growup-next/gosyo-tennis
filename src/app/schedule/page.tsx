@@ -38,6 +38,7 @@ export default function SchedulePage() {
     const [events, setEvents] = useState<StoredEvent[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const [showDebug, setShowDebug] = useState(false);
     const [testResult, setTestResult] = useState<TestResult | null>(null);
@@ -48,14 +49,52 @@ export default function SchedulePage() {
         loadEvents();
     }, []);
 
-    const loadEvents = () => {
-        const stored = localStorage.getItem('tennis_events');
-        if (stored) {
-            const parsed: StoredEvent[] = JSON.parse(stored);
-            const sorted = parsed.sort((a, b) =>
-                new Date(a.date).getTime() - new Date(b.date).getTime()
-            );
-            setEvents(sorted);
+    const loadEvents = async () => {
+        setIsLoading(true);
+        try {
+            // スプレッドシートからデータを取得
+            const response = await fetch('/api/sheets/schedule');
+            const data = await response.json();
+
+            if (response.ok && data.events && data.events.length > 0) {
+                // スプレッドシートのデータを使用
+                const parsed: StoredEvent[] = data.events.map((ev: Record<string, string>) => ({
+                    id: ev.id,
+                    date: ev.date,
+                    startTime: ev.startTime,
+                    endTime: ev.endTime,
+                    courtNumber: parseInt(ev.courtNumber, 10) || 1,
+                }));
+                const sorted = parsed.sort((a, b) =>
+                    new Date(a.date).getTime() - new Date(b.date).getTime()
+                );
+                setEvents(sorted);
+                // ローカルストレージにキャッシュ
+                localStorage.setItem('tennis_events', JSON.stringify(sorted));
+            } else {
+                // フォールバック: ローカルストレージから読み込み
+                const stored = localStorage.getItem('tennis_events');
+                if (stored) {
+                    const parsed: StoredEvent[] = JSON.parse(stored);
+                    const sorted = parsed.sort((a, b) =>
+                        new Date(a.date).getTime() - new Date(b.date).getTime()
+                    );
+                    setEvents(sorted);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load from spreadsheet:', error);
+            // エラー時: ローカルストレージから読み込み
+            const stored = localStorage.getItem('tennis_events');
+            if (stored) {
+                const parsed: StoredEvent[] = JSON.parse(stored);
+                const sorted = parsed.sort((a, b) =>
+                    new Date(a.date).getTime() - new Date(b.date).getTime()
+                );
+                setEvents(sorted);
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 

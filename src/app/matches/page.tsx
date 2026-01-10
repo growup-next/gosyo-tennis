@@ -24,6 +24,7 @@ export default function MatchesPage() {
     const [attendances, setAttendances] = useState<Attendance[]>([]);
     const [matchFormat, setMatchFormat] = useState<'no-ad' | 'one-deuce'>('no-ad');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     // イベント読み込み
     useEffect(() => {
@@ -37,26 +38,72 @@ export default function MatchesPage() {
         }
     }, [selectedEventId]);
 
-    const loadEvents = () => {
-        const stored = localStorage.getItem('tennis_events');
-        if (stored) {
-            const parsed: StoredEvent[] = JSON.parse(stored);
-            // 日付順にソート（新しい順）
-            const sorted = parsed.sort((a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-            setEvents(sorted);
+    const loadEvents = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/sheets/schedule');
+            const data = await response.json();
 
-            // デフォルトで次の開催日（今日以降で最も近い日）を選択
-            const today = new Date().toISOString().split('T')[0];
-            const upcoming = sorted.filter(ev => ev.date >= today);
-            if (upcoming.length > 0) {
-                // 次の開催日（日付が近い順なので最後）
-                setSelectedEventId(upcoming[upcoming.length - 1].id);
-            } else if (sorted.length > 0) {
-                // 過去の日程しかない場合は最新を選択
-                setSelectedEventId(sorted[0].id);
+            if (response.ok && data.events && data.events.length > 0) {
+                const parsed: StoredEvent[] = data.events.map((ev: Record<string, string>) => ({
+                    id: ev.id,
+                    date: ev.date,
+                    startTime: ev.startTime,
+                    endTime: ev.endTime,
+                    courtNumber: parseInt(ev.courtNumber, 10) || 1,
+                }));
+                const sorted = parsed.sort((a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setEvents(sorted);
+                localStorage.setItem('tennis_events', JSON.stringify(parsed));
+
+                const today = new Date().toISOString().split('T')[0];
+                const upcoming = sorted.filter(ev => ev.date >= today);
+                if (upcoming.length > 0) {
+                    setSelectedEventId(upcoming[upcoming.length - 1].id);
+                } else if (sorted.length > 0) {
+                    setSelectedEventId(sorted[0].id);
+                }
+            } else {
+                // フォールバック: ローカルストレージから読み込み
+                const stored = localStorage.getItem('tennis_events');
+                if (stored) {
+                    const parsed: StoredEvent[] = JSON.parse(stored);
+                    const sorted = parsed.sort((a, b) =>
+                        new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+                    setEvents(sorted);
+
+                    const today = new Date().toISOString().split('T')[0];
+                    const upcoming = sorted.filter(ev => ev.date >= today);
+                    if (upcoming.length > 0) {
+                        setSelectedEventId(upcoming[upcoming.length - 1].id);
+                    } else if (sorted.length > 0) {
+                        setSelectedEventId(sorted[0].id);
+                    }
+                }
             }
+        } catch (error) {
+            console.error('Failed to load events from spreadsheet:', error);
+            const stored = localStorage.getItem('tennis_events');
+            if (stored) {
+                const parsed: StoredEvent[] = JSON.parse(stored);
+                const sorted = parsed.sort((a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setEvents(sorted);
+
+                const today = new Date().toISOString().split('T')[0];
+                const upcoming = sorted.filter(ev => ev.date >= today);
+                if (upcoming.length > 0) {
+                    setSelectedEventId(upcoming[upcoming.length - 1].id);
+                } else if (sorted.length > 0) {
+                    setSelectedEventId(sorted[0].id);
+                }
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -311,6 +358,30 @@ export default function MatchesPage() {
         });
     };
 
+    // チームメンバーを更新
+    const updateTeamMembers = (
+        matchId: string,
+        team1: [string, string],
+        team2: [string, string]
+    ) => {
+        setMatches(prev => {
+            const updated = prev.map(m => {
+                if (m.id === matchId) {
+                    return { ...m, team1, team2 };
+                }
+                return m;
+            });
+
+            // 全試合データを更新
+            const allMatchesStr = localStorage.getItem('tennis_matches');
+            const allMatches: Match[] = allMatchesStr ? JSON.parse(allMatchesStr) : [];
+            const otherMatches = allMatches.filter(m => m.eventId !== selectedEventId);
+            localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...updated]));
+
+            return updated;
+        });
+    };
+
     const getMemberName = (id: string): string => {
         const guestsStr = localStorage.getItem('tennis_guests');
         const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
@@ -441,12 +512,14 @@ export default function MatchesPage() {
                                 key={match.id}
                                 match={match}
                                 getMemberName={getMemberName}
+                                presentMembers={presentMembers}
                                 onUpdateCoinToss={updateCoinToss}
                                 onUpdateScore={updateScore}
                                 onMarkAsNoGame={markAsNoGame}
                                 onConfirm={confirmMatch}
                                 onReset={resetMatch}
                                 onDelete={deleteMatch}
+                                onUpdateTeamMembers={updateTeamMembers}
                             />
                         ))}
                     </div>
@@ -485,27 +558,35 @@ function formatDateFull(dateStr: string): string {
 interface MatchCardProps {
     match: Match;
     getMemberName: (id: string) => string;
+    presentMembers: Member[];
     onUpdateCoinToss: (matchId: string, field: keyof CoinTossResult, value: string) => void;
     onUpdateScore: (matchId: string, team1Games: number, team2Games: number) => void;
     onMarkAsNoGame: (matchId: string, reason: string) => void;
     onConfirm: (matchId: string) => void;
     onReset: (matchId: string) => void;
     onDelete: (matchId: string) => void;
+    onUpdateTeamMembers: (matchId: string, team1: [string, string], team2: [string, string]) => void;
 }
 
 function MatchCard({
     match,
     getMemberName,
+    presentMembers,
     onUpdateCoinToss,
     onUpdateScore,
     onMarkAsNoGame,
     onConfirm,
     onReset,
     onDelete,
+    onUpdateTeamMembers,
 }: MatchCardProps) {
     const [showNoGameModal, setShowNoGameModal] = useState(false);
     const [noGameReason, setNoGameReason] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showEditTeamModal, setShowEditTeamModal] = useState(false);
+    const [editTeam1, setEditTeam1] = useState<[string, string]>(match.team1);
+    const [editTeam2, setEditTeam2] = useState<[string, string]>(match.team2);
+    const [editError, setEditError] = useState('');
 
     const team1Names = match.team1.map(getMemberName);
     const team2Names = match.team2.map(getMemberName);
@@ -519,6 +600,33 @@ function MatchCard({
     const handleDelete = () => {
         onDelete(match.id);
         setShowDeleteConfirm(false);
+    };
+
+    const openEditTeamModal = () => {
+        setEditTeam1([...match.team1] as [string, string]);
+        setEditTeam2([...match.team2] as [string, string]);
+        setEditError('');
+        setShowEditTeamModal(true);
+    };
+
+    const handleEditTeamSubmit = () => {
+        // 全員異なるプレイヤーかチェック
+        const allPlayers = [...editTeam1, ...editTeam2];
+        const uniquePlayers = new Set(allPlayers);
+        if (uniquePlayers.size !== 4) {
+            setEditError('同じプレイヤーを複数選択することはできません');
+            return;
+        }
+
+        // 空のプレイヤーがないかチェック
+        if (allPlayers.some(p => !p)) {
+            setEditError('全てのプレイヤーを選択してください');
+            return;
+        }
+
+        onUpdateTeamMembers(match.id, editTeam1, editTeam2);
+        setShowEditTeamModal(false);
+        setEditError('');
     };
 
     const isEditable = !match.isConfirmed;
@@ -557,6 +665,16 @@ function MatchCard({
                     )}
                 </div>
             </div>
+
+            {/* 組み合わせ変更ボタン */}
+            {isEditable && !match.isNoGame && (
+                <button
+                    className={styles.editTeamBtn}
+                    onClick={openEditTeamModal}
+                >
+                    ✏️ 組み合わせ変更
+                </button>
+            )}
 
             {/* コイントス */}
             {match.coinToss && !match.isNoGame && (
@@ -705,6 +823,76 @@ function MatchCard({
                         <div className={styles.modalButtons}>
                             <button onClick={() => setShowDeleteConfirm(false)}>キャンセル</button>
                             <button onClick={handleDelete} className={styles.deleteBtn}>削除する</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 組み合わせ編集モーダル */}
+            {showEditTeamModal && (
+                <div className={styles.modal}>
+                    <div className={styles.modalContent}>
+                        <h3>組み合わせを変更</h3>
+
+                        {editError && (
+                            <p className={styles.errorText}>{editError}</p>
+                        )}
+
+                        <div className={styles.teamEditSection}>
+                            <label className={styles.teamEditLabel}>チーム1</label>
+                            <div className={styles.teamEditRow}>
+                                <select
+                                    className={styles.memberSelect}
+                                    value={editTeam1[0]}
+                                    onChange={(e) => setEditTeam1([e.target.value, editTeam1[1]])}
+                                >
+                                    <option value="">選択してください</option>
+                                    {presentMembers.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    className={styles.memberSelect}
+                                    value={editTeam1[1]}
+                                    onChange={(e) => setEditTeam1([editTeam1[0], e.target.value])}
+                                >
+                                    <option value="">選択してください</option>
+                                    {presentMembers.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className={styles.teamEditSection}>
+                            <label className={styles.teamEditLabel}>チーム2</label>
+                            <div className={styles.teamEditRow}>
+                                <select
+                                    className={styles.memberSelect}
+                                    value={editTeam2[0]}
+                                    onChange={(e) => setEditTeam2([e.target.value, editTeam2[1]])}
+                                >
+                                    <option value="">選択してください</option>
+                                    {presentMembers.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                                <select
+                                    className={styles.memberSelect}
+                                    value={editTeam2[1]}
+                                    onChange={(e) => setEditTeam2([editTeam2[0], e.target.value])}
+                                >
+                                    <option value="">選択してください</option>
+                                    {presentMembers.map(m => (
+                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className={styles.modalButtons}>
+                            <button onClick={() => setShowEditTeamModal(false)}>キャンセル</button>
+                            <button onClick={handleEditTeamSubmit} className={styles.applyBtn}>変更を適用</button>
                         </div>
                     </div>
                 </div>
