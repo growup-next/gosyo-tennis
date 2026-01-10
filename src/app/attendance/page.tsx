@@ -105,7 +105,7 @@ export default function AttendancePage() {
         }
     };
 
-    const loadAttendances = (eventId: string) => {
+    const loadAttendances = async (eventId: string) => {
         // 固定メンバーの出欠初期化
         const initialAttendances: AttendanceEntry[] = FIXED_MEMBERS.map(member => ({
             ...member,
@@ -114,7 +114,75 @@ export default function AttendancePage() {
             earlyLeaveTime: '',
         }));
 
-        // 保存済みの出欠を復元
+        try {
+            // スプレッドシートから出欠データを取得
+            const response = await fetch('/api/sheets/data?sheet=Attendance');
+            const data = await response.json();
+
+            if (response.ok && data.data && data.data.length > 0) {
+                // スプレッドシートのデータでイベントに該当するものをフィルタ
+                const eventAttendances = data.data.filter(
+                    (row: Record<string, string>) => row.eventId === eventId
+                );
+
+                // 固定メンバーの出欠を更新
+                initialAttendances.forEach(entry => {
+                    const savedEntry = eventAttendances.find(
+                        (s: Record<string, string>) => s.memberId === entry.id
+                    );
+                    if (savedEntry) {
+                        entry.status = savedEntry.status as AttendanceStatus;
+                        entry.earlyLeave = savedEntry.earlyLeave === 'true';
+                        entry.earlyLeaveTime = savedEntry.earlyLeaveTime || '';
+                    }
+                });
+
+                // ゲストを追加
+                const guestsStr = localStorage.getItem('tennis_guests');
+                const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
+
+                eventAttendances
+                    .filter((s: Record<string, string>) => s.memberId.startsWith('guest_'))
+                    .forEach((guestAttendance: Record<string, string>) => {
+                        const guest = guests.find(g => g.id === guestAttendance.memberId);
+                        if (guest) {
+                            initialAttendances.push({
+                                ...guest,
+                                status: guestAttendance.status as AttendanceStatus,
+                                earlyLeave: guestAttendance.earlyLeave === 'true',
+                                earlyLeaveTime: guestAttendance.earlyLeaveTime || '',
+                            });
+                        }
+                    });
+
+                // ローカルストレージにもキャッシュ
+                const allAttendances: Attendance[] = eventAttendances.map((row: Record<string, string>) => ({
+                    eventId: row.eventId,
+                    memberId: row.memberId,
+                    status: row.status as AttendanceStatus,
+                    earlyLeave: row.earlyLeave === 'true',
+                    earlyLeaveTime: row.earlyLeaveTime || '',
+                }));
+
+                // 既存のローカルデータとマージ
+                const existingStr = localStorage.getItem('tennis_attendances');
+                let existingAttendances: Attendance[] = existingStr ? JSON.parse(existingStr) : [];
+                existingAttendances = existingAttendances.filter(a => a.eventId !== eventId);
+                localStorage.setItem('tennis_attendances', JSON.stringify([...existingAttendances, ...allAttendances]));
+            } else {
+                // フォールバック: ローカルストレージから読み込み
+                loadAttendancesFromLocal(eventId, initialAttendances);
+            }
+        } catch (error) {
+            console.error('Failed to load attendances from spreadsheet:', error);
+            // エラー時: ローカルストレージから読み込み
+            loadAttendancesFromLocal(eventId, initialAttendances);
+        }
+
+        setAttendances(initialAttendances);
+    };
+
+    const loadAttendancesFromLocal = (eventId: string, initialAttendances: AttendanceEntry[]) => {
         const savedStr = localStorage.getItem('tennis_attendances');
         if (savedStr) {
             const saved: Attendance[] = JSON.parse(savedStr);
@@ -145,8 +213,6 @@ export default function AttendancePage() {
                     }
                 });
         }
-
-        setAttendances(initialAttendances);
     };
 
     const updateAttendance = (memberId: string, field: keyof AttendanceEntry, value: unknown) => {
