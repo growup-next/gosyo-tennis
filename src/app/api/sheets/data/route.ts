@@ -15,6 +15,14 @@ const SHEETS = {
     Rankings: ['memberId', 'memberName', 'isGuest', 'matchesPlayed', 'wins', 'losses', 'winRate', 'rank', 'period', 'updatedAt'],
 };
 
+// 各シートのユニークキー（これらのカラムで行を特定する）
+const UNIQUE_KEYS: Record<string, string[]> = {
+    Matches: ['id'],
+    Results: ['matchId'],
+    Attendance: ['eventId', 'memberId'],
+    Rankings: ['memberId', 'period'],
+};
+
 type SheetName = keyof typeof SHEETS;
 
 /**
@@ -151,10 +159,10 @@ async function ensureSheetExists(accessToken: string, sheetName: SheetName): Pro
 }
 
 /**
- * POST: データを保存
+ * POST: データを保存（upsert: 既存があれば更新、なければ追加）
  */
 export async function POST(request: NextRequest) {
-    console.log('=== API /api/sheets/data POST ===');
+    console.log('=== API /api/sheets/data POST (upsert) ===');
 
     try {
         const body = await request.json();
@@ -180,38 +188,120 @@ export async function POST(request: NextRequest) {
         await ensureSheetExists(accessToken, sheetName as SheetName);
 
         const headers = SHEETS[sheetName as SheetName];
+        const uniqueKeys = UNIQUE_KEYS[sheetName] || [];
         const rowData = headers.map(h => data[h] ?? '');
 
-        console.log('Appending row:', rowData);
+        // 既存データを取得して、該当行があるか確認
+        let existingRowIndex = -1;
 
-        const appendResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-            {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ values: [rowData] }),
-            }
-        );
-
-        const appendData = await appendResponse.json();
-
-        if (!appendResponse.ok) {
-            console.error('Append failed:', appendData);
-            return NextResponse.json(
-                { error: 'Failed to append data', details: appendData },
-                { status: 500 }
+        try {
+            const getResponse = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}`,
+                {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                }
             );
+
+            if (getResponse.ok) {
+                const sheetData = await getResponse.json();
+                console.log('Sheet data retrieved, rows:', sheetData.values?.length || 0);
+
+                if (sheetData.values && sheetData.values.length > 1) {
+                    const [sheetHeaders, ...rows] = sheetData.values;
+
+                    // ユニークキーのインデックスを取得
+                    const keyIndices = uniqueKeys.map(key => sheetHeaders.indexOf(key));
+                    console.log('Unique keys:', uniqueKeys, 'Key indices:', keyIndices);
+
+                    // 既存行を検索
+                    existingRowIndex = rows.findIndex((row: string[]) => {
+                        return keyIndices.every((idx, i) => {
+                            const keyName = uniqueKeys[i];
+                            return row[idx] === data[keyName];
+                        });
+                    });
+
+                    console.log('Existing row index:', existingRowIndex);
+                }
+            } else {
+                console.log('Failed to get sheet data, will append new row');
+            }
+        } catch (err) {
+            console.error('Error fetching existing data:', err);
+            // エラーが発生した場合は新規追加として処理
         }
 
-        console.log('Data saved successfully');
-        return NextResponse.json({
-            success: true,
-            message: `Data saved to ${sheetName}`,
-            data: appendData,
-        });
+        if (existingRowIndex >= 0) {
+            // 既存行を更新（+2はヘッダー行とインデックス分）
+            const rowNumber = existingRowIndex + 2;
+            const lastCol = String.fromCharCode(64 + headers.length);
+            const range = `${sheetName}!A${rowNumber}:${lastCol}${rowNumber}`;
+
+            console.log(`Updating existing row ${rowNumber}:`, rowData);
+
+            const updateResponse = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ values: [rowData] }),
+                }
+            );
+
+            const updateData = await updateResponse.json();
+
+            if (!updateResponse.ok) {
+                console.error('Update failed:', updateData);
+                return NextResponse.json(
+                    { error: 'Failed to update data', details: updateData },
+                    { status: 500 }
+                );
+            }
+
+            console.log('Data updated successfully');
+            return NextResponse.json({
+                success: true,
+                message: `Data updated in ${sheetName} (row ${rowNumber})`,
+                action: 'update',
+                data: updateData,
+            });
+        } else {
+            // 新規行を追加
+            console.log('Appending new row:', rowData);
+
+            const appendResponse = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+                {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ values: [rowData] }),
+                }
+            );
+
+            const appendData = await appendResponse.json();
+
+            if (!appendResponse.ok) {
+                console.error('Append failed:', appendData);
+                return NextResponse.json(
+                    { error: 'Failed to append data', details: appendData },
+                    { status: 500 }
+                );
+            }
+
+            console.log('Data appended successfully');
+            return NextResponse.json({
+                success: true,
+                message: `Data appended to ${sheetName}`,
+                action: 'insert',
+                data: appendData,
+            });
+        }
 
     } catch (error) {
         console.error('API Error:', error);
