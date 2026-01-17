@@ -188,14 +188,14 @@ export default function Dashboard() {
         };
     };
 
-    // 勝敗マトリックスを生成（簡易版：上位6名のみ表示）
+    // 勝敗マトリックスを生成（試合参加者全員を表示）
     const getWinLossMatrix = () => {
-        const topMembers = rankings.filter(r => !r.isGuest && r.matchesPlayed > 0).slice(0, 6);
+        const activeMembers = rankings.filter(r => !r.isGuest && r.matchesPlayed > 0);
         const matrix: Record<string, Record<string, { wins: number; losses: number }>> = {};
 
-        topMembers.forEach(m => {
+        activeMembers.forEach(m => {
             matrix[m.memberId] = {};
-            topMembers.forEach(n => {
+            activeMembers.forEach(n => {
                 if (m.memberId !== n.memberId) {
                     matrix[m.memberId][n.memberId] = { wins: 0, losses: 0 };
                 }
@@ -228,7 +228,7 @@ export default function Dashboard() {
             });
         });
 
-        return { matrix, members: topMembers };
+        return { matrix, members: activeMembers };
     };
 
     const summary = getMonthlySummary();
