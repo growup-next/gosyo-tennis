@@ -68,10 +68,21 @@ export default function Dashboard() {
                 setEvents(upcomingEvents);
             }
 
-            // 出欠データ
+            // 出欠データ（重複排除: eventId+memberIdで最新のレコードのみ保持）
             if (attendanceRes.ok && attendanceData.data) {
                 console.log('Attendance data loaded:', attendanceData.data.length, 'records');
-                setAttendances(attendanceData.data);
+
+                // 重複排除: eventId+memberIdをキーとして最新のレコードを保持
+                const attendanceMap = new Map<string, AttendanceInfo>();
+                attendanceData.data.forEach((a: AttendanceInfo) => {
+                    const key = `${a.eventId}-${a.memberId}`;
+                    // 常に上書き（後のレコードが新しいと仮定）
+                    attendanceMap.set(key, a);
+                });
+                const uniqueAttendances = Array.from(attendanceMap.values());
+                console.log('Unique attendance records:', uniqueAttendances.length);
+
+                setAttendances(uniqueAttendances);
             }
 
             // 試合データ（今年分）
@@ -94,9 +105,9 @@ export default function Dashboard() {
                             matchNumber: parseInt(row.matchNumber, 10) || 0,
                             team1: [row.team1Player1, row.team1Player2] as [string, string],
                             team2: [row.team2Player1, row.team2Player2] as [string, string],
-                            isNoGame: row.isNoGame === 'true',
+                            isNoGame: String(row.isNoGame).toLowerCase() === 'true',
                             noGameReason: row.noGameReason || undefined,
-                            isConfirmed: row.isConfirmed === 'true',
+                            isConfirmed: String(row.isConfirmed).toLowerCase() === 'true',
                             createdAt: row.createdAt,
                             score: result ? {
                                 team1Games: parseInt(result.team1Games, 10) || 0,

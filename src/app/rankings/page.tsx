@@ -56,9 +56,9 @@ export default function RankingsPage() {
                         matchNumber: parseInt(row.matchNumber, 10) || 0,
                         team1: [row.team1Player1, row.team1Player2] as [string, string],
                         team2: [row.team2Player1, row.team2Player2] as [string, string],
-                        isNoGame: row.isNoGame === 'true',
+                        isNoGame: String(row.isNoGame).toLowerCase() === 'true',
                         noGameReason: row.noGameReason || undefined,
-                        isConfirmed: row.isConfirmed === 'true',
+                        isConfirmed: String(row.isConfirmed).toLowerCase() === 'true',
                         createdAt: row.createdAt,
                         score: result ? {
                             team1Games: parseInt(result.team1Games, 10) || 0,
