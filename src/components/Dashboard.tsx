@@ -25,6 +25,7 @@ interface AttendanceInfo {
 
 export default function Dashboard() {
     const [events, setEvents] = useState<EventInfo[]>([]);
+    const [allEvents, setAllEvents] = useState<EventInfo[]>([]);
     const [attendances, setAttendances] = useState<AttendanceInfo[]>([]);
     const [matches, setMatches] = useState<Match[]>([]);
     const [rankings, setRankings] = useState<PlayerStats[]>([]);
@@ -51,30 +52,40 @@ export default function Dashboard() {
             const matchesData = await matchesRes.json();
             const resultsData = await resultsRes.json();
 
-            // 今月のイベントをフィルタリング
+            // 今日以降の開催をフィルタリング
             const today = new Date();
-            const thisMonth = today.toISOString().slice(0, 7); // "YYYY-MM"
+            const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
+            const thisMonth = todayStr.slice(0, 7); // "YYYY-MM"
 
             if (eventsRes.ok && eventsData.events) {
-                const monthEvents = eventsData.events.filter(
-                    (e: EventInfo) => e.date && e.date.startsWith(thisMonth)
+                // 全イベントを保持（サマリ・勝敗表用）
+                setAllEvents(eventsData.events);
+
+                // 今日以降のイベントのみ表示用にフィルタリング
+                const upcomingEvents = eventsData.events.filter(
+                    (e: EventInfo) => e.date && e.date >= todayStr && e.date.startsWith(thisMonth)
                 );
-                setEvents(monthEvents);
+                setEvents(upcomingEvents);
             }
 
             // 出欠データ
             if (attendanceRes.ok && attendanceData.data) {
+                console.log('Attendance data loaded:', attendanceData.data.length, 'records');
                 setAttendances(attendanceData.data);
             }
 
             // 試合データ（今年分）
-            const thisYear = today.toISOString().slice(0, 4);
-            if (matchesRes.ok && matchesData.data && resultsRes.ok && resultsData.data) {
-                const allEvents = eventsRes.ok && eventsData.events ? eventsData.events : [];
+            const thisYear = todayStr.slice(0, 4);
+            if (matchesRes.ok && matchesData.data && resultsRes.ok) {
+                const eventsList = eventsRes.ok && eventsData.events ? eventsData.events : [];
+                const resultsList = resultsData.data || [];
+
+                console.log('Matches data loaded:', matchesData.data.length, 'matches');
+                console.log('Results data loaded:', resultsList.length, 'results');
 
                 const yearMatches: Match[] = matchesData.data
                     .map((row: Record<string, string>) => {
-                        const result = resultsData.data.find(
+                        const result = resultsList.find(
                             (r: Record<string, string>) => r.matchId === row.id
                         );
                         return {
@@ -95,17 +106,20 @@ export default function Dashboard() {
                         };
                     })
                     .filter((match: Match) => {
-                        const event = allEvents.find((e: EventInfo) => e.id === match.eventId);
+                        const event = eventsList.find((e: EventInfo) => e.id === match.eventId);
                         return event && event.date && event.date.startsWith(thisYear);
                     });
+
+                console.log('Year matches filtered:', yearMatches.length, 'matches');
+                console.log('Confirmed matches:', yearMatches.filter(m => m.isConfirmed && m.score).length);
 
                 setMatches(yearMatches);
 
                 // ランキング計算
                 const guestsStr = localStorage.getItem('tennis_guests');
                 const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
-                const allMembers = [...FIXED_MEMBERS, ...guests];
-                const stats = calculatePlayerStats(yearMatches, allMembers);
+                const allMembersList = [...FIXED_MEMBERS, ...guests];
+                const stats = calculatePlayerStats(yearMatches, allMembersList);
                 const ranked = calculateRankings(stats);
                 setRankings(ranked);
             }
@@ -131,8 +145,10 @@ export default function Dashboard() {
         const today = new Date();
         const thisMonth = today.toISOString().slice(0, 7);
 
-        // 今月のイベントIDを取得
-        const monthEventIds = events.map(e => e.id);
+        // 今月のイベントIDを取得（allEventsから）
+        const monthEventIds = allEvents
+            .filter(e => e.date && e.date.startsWith(thisMonth))
+            .map(e => e.id);
 
         // 今月の試合をフィルタリング
         const monthMatches = matches.filter(m => monthEventIds.includes(m.eventId));
@@ -248,8 +264,7 @@ export default function Dashboard() {
                                             <>
                                                 <span className={styles.attendeeLabel}>参加:</span>
                                                 <span className={styles.attendeeNames}>
-                                                    {attendees.slice(0, 5).join(', ')}
-                                                    {attendees.length > 5 && ` 他${attendees.length - 5}名`}
+                                                    {attendees.join(', ')}
                                                 </span>
                                             </>
                                         ) : (
