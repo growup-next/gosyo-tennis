@@ -1,0 +1,199 @@
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.loading {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--text-muted);
+}
+
+.section {
+    background: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: var(--space-md);
+    box-shadow: var(--shadow);
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--space-md);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+/* 今月の開催 */
+.eventList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.eventCard {
+    background: var(--gray-50);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-left: 3px solid var(--primary);
+}
+
+.eventHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-xs);
+}
+
+.eventDate {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.eventCourt {
+    font-size: 0.75rem;
+    background: var(--primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 9999px;
+}
+
+.eventTime {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
+}
+
+.eventAttendees {
+    font-size: 0.813rem;
+    color: var(--text-secondary);
+}
+
+.attendeeLabel {
+    color: var(--text-muted);
+    margin-right: var(--space-xs);
+}
+
+.attendeeNames {
+    color: var(--text-primary);
+}
+
+.noAttendees {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.noEvents {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-md);
+}
+
+/* 月次サマリ */
+.summaryGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-sm);
+}
+
+.summaryItem {
+    text-align: center;
+    padding: var(--space-sm);
+    background: var(--gray-50);
+    border-radius: var(--border-radius-sm);
+}
+
+.summaryValue {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.summaryLabel {
+    font-size: 0.688rem;
+    color: var(--text-muted);
+}
+
+/* 勝敗表 */
+.matrixWrapper {
+    overflow-x: auto;
+    margin-bottom: var(--space-md);
+}
+
+.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.matrix th,
+.matrix td {
+    padding: var(--space-xs);
+    text-align: center;
+    border: 1px solid var(--border-color);
+    min-width: 40px;
+}
+
+.matrix thead th {
+    background: var(--gray-100);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.matrix tbody th {
+    background: var(--gray-50);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+    padding-left: var(--space-sm);
+}
+
+.matrix td {
+    background: white;
+}
+
+.diag {
+    color: var(--text-muted);
+}
+
+.record {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.detailButton {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.detailButton:hover {
+    background: var(--primary-dark);
+}
+
+.noData {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-md);
+}
+
+@media (max-width: 480px) {
+    .summaryGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .summaryValue {
+        font-size: 1.125rem;
+    }
+}

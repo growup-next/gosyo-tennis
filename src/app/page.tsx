@@ -1,5 +1,8 @@
+'use client';
+
 import styles from './page.module.css';
 import Link from 'next/link';
+import Dashboard from '@/components/Dashboard';
 
 export default function Home() {
   return (
@@ -16,6 +19,9 @@ export default function Home() {
           </p>
         </div>
       </section>
+
+      {/* ダッシュボード */}
+      <Dashboard />
 
       {/* クイックアクション */}
       <section className={styles.quickActions}>

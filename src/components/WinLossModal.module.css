@@ -1,0 +1,269 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--space-md);
+}
+
+.modal {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    width: 100%;
+    max-width: 500px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.closeButton {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--gray-100);
+    border-radius: 50%;
+    font-size: 1rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    transition: background var(--transition-fast);
+}
+
+.closeButton:hover {
+    background: var(--gray-200);
+}
+
+/* タブ */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-md) var(--space-md) 0;
+}
+
+.tab {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.tab:hover:not(.active) {
+    color: var(--text-secondary);
+}
+
+/* コンテンツ */
+.content {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-md);
+}
+
+/* 対戦結果一覧 */
+.resultsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.resultItem {
+    background: var(--bg-card);
+    border-radius: var(--border-radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--border-color);
+}
+
+.resultHeader {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-xs);
+}
+
+.resultDate {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.resultMatch {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.resultTeams {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xs);
+}
+
+.team {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.team.winner {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.vs {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.resultScore {
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* ペア戦績 */
+.pairsList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.pairItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--bg-card);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+.pairRank {
+    width: 24px;
+    height: 24px;
+    background: var(--gray-100);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.pairItem:nth-child(1) .pairRank {
+    background: #ffd700;
+    color: white;
+}
+
+.pairItem:nth-child(2) .pairRank {
+    background: #c0c0c0;
+    color: white;
+}
+
+.pairItem:nth-child(3) .pairRank {
+    background: #cd7f32;
+    color: white;
+}
+
+.pairName {
+    flex: 1;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.pairRecord {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.pairRate {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    min-width: 36px;
+    text-align: right;
+}
+
+/* 対戦戦績 */
+.versusTable {
+    overflow-x: auto;
+}
+
+.tableWrapper {
+    overflow-x: auto;
+}
+
+.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.matrix th,
+.matrix td {
+    padding: var(--space-xs);
+    text-align: center;
+    border: 1px solid var(--border-color);
+    min-width: 40px;
+}
+
+.matrix thead th {
+    background: var(--gray-100);
+    font-weight: 600;
+    color: var(--text-primary);
+    position: sticky;
+    top: 0;
+}
+
+.matrix tbody th {
+    background: var(--gray-50);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+    padding-left: var(--space-sm);
+    position: sticky;
+    left: 0;
+}
+
+.matrix td {
+    background: white;
+}
+
+.diag {
+    color: var(--text-muted);
+}
+
+.record {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.noData {
+    text-align: center;
+    color: var(--text-muted);
+    padding: var(--space-xl);
+}
