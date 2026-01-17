@@ -8,6 +8,12 @@ import styles from './page.module.css';
 
 type Period = 'today' | 'month' | 'year' | 'all';
 
+// イベントデータの型（日付情報取得用）
+interface EventInfo {
+    id: string;
+    date: string;
+}
+
 export default function RankingsPage() {
     const [rankings, setRankings] = useState<PlayerStats[]>([]);
     const [period, setPeriod] = useState<Period>('all');
@@ -21,14 +27,23 @@ export default function RankingsPage() {
         setIsLoading(true);
 
         try {
-            // スプレッドシートから試合データを取得
-            const matchesResponse = await fetch('/api/sheets/data?sheet=Matches');
-            const matchesData = await matchesResponse.json();
+            // スプレッドシートから試合データとイベントデータを取得
+            const [matchesResponse, resultsResponse, eventsResponse] = await Promise.all([
+                fetch('/api/sheets/data?sheet=Matches'),
+                fetch('/api/sheets/data?sheet=Results'),
+                fetch('/api/sheets/schedule'),
+            ]);
 
-            const resultsResponse = await fetch('/api/sheets/data?sheet=Results');
+            const matchesData = await matchesResponse.json();
             const resultsData = await resultsResponse.json();
+            const eventsData = await eventsResponse.json();
 
             let matches: Match[] = [];
+
+            // イベント情報を取得
+            const events: EventInfo[] = eventsResponse.ok && eventsData.events
+                ? eventsData.events
+                : [];
 
             if (matchesResponse.ok && matchesData.data && matchesData.data.length > 0 &&
                 resultsResponse.ok && resultsData.data) {
@@ -65,8 +80,8 @@ export default function RankingsPage() {
             const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
             const allMembers = [...FIXED_MEMBERS, ...guests];
 
-            // 期間でフィルタリング
-            const filteredMatches = filterMatchesByPeriod(matches, period);
+            // 期間でフィルタリング（イベントの日付を使用）
+            const filteredMatches = filterMatchesByPeriod(matches, period, events);
 
             // 成績を計算
             const stats = calculatePlayerStats(filteredMatches, allMembers);
@@ -89,8 +104,8 @@ export default function RankingsPage() {
             const guests: Member[] = guestsStr ? JSON.parse(guestsStr) : [];
             const allMembers = [...FIXED_MEMBERS, ...guests];
 
-            const filteredMatches = filterMatchesByPeriod(matches, period);
-            const stats = calculatePlayerStats(filteredMatches, allMembers);
+            // エラー時はローカルデータのみで全期間表示
+            const stats = calculatePlayerStats(matches, allMembers);
             const ranked = calculateRankings(stats);
 
             setRankings(ranked);
@@ -131,10 +146,36 @@ export default function RankingsPage() {
         }
     };
 
-    const filterMatchesByPeriod = (matches: Match[], period: Period): Match[] => {
-        // 簡易実装：全期間のみ対応
-        // 実際の実装ではイベントデータと紐付けて日付フィルタリング
-        return matches;
+    const filterMatchesByPeriod = (
+        matches: Match[],
+        period: Period,
+        events: EventInfo[]
+    ): Match[] => {
+        // 全期間の場合はフィルタリング不要
+        if (period === 'all') return matches;
+
+        // 現在の日付情報を取得
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0]; // "YYYY-MM-DD"
+        const thisMonth = todayStr.slice(0, 7);              // "YYYY-MM"
+        const thisYear = todayStr.slice(0, 4);               // "YYYY"
+
+        return matches.filter(match => {
+            // 試合に紐づくイベントを検索
+            const event = events.find(e => e.id === match.eventId);
+            if (!event || !event.date) return false;
+
+            switch (period) {
+                case 'today':
+                    return event.date === todayStr;
+                case 'month':
+                    return event.date.startsWith(thisMonth);
+                case 'year':
+                    return event.date.startsWith(thisYear);
+                default:
+                    return true;
+            }
+        });
     };
 
     const regularMembers = rankings.filter(r => !r.isGuest);
