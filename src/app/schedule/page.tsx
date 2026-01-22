@@ -236,8 +236,9 @@ export default function SchedulePage() {
         }
     };
 
+    // 最大日付を1年後に設定
     const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 2);
+    maxDate.setFullYear(maxDate.getFullYear() + 1);
     const maxDateStr = maxDate.toISOString().split('T')[0];
 
     const today = new Date().toISOString().split('T')[0];
