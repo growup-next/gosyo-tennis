@@ -60,27 +60,31 @@ export default function AttendancePage() {
                     endTime: ev.endTime,
                     courtNumber: parseInt(ev.courtNumber, 10) || 1,
                 }));
-                const upcoming = parsed
-                    .filter(ev => ev.date >= today)
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                setEvents(upcoming);
+                const sorted = parsed.sort((a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setEvents(sorted);
                 localStorage.setItem('tennis_events', JSON.stringify(parsed));
 
-                if (upcoming.length > 0 && !selectedEventId) {
-                    setSelectedEventId(upcoming[0].id);
+                if (!selectedEventId) {
+                    const upcoming = sorted.filter(ev => ev.date >= today);
+                    const defaultEvent = upcoming.length > 0 ? upcoming[upcoming.length - 1] : sorted[0];
+                    if (defaultEvent) setSelectedEventId(defaultEvent.id);
                 }
             } else {
                 // フォールバック: ローカルストレージから読み込み
                 const stored = localStorage.getItem('tennis_events');
                 if (stored) {
                     const parsed: StoredEvent[] = JSON.parse(stored);
-                    const upcoming = parsed
-                        .filter(ev => ev.date >= today)
-                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                    setEvents(upcoming);
+                    const sorted = parsed.sort((a, b) =>
+                        new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+                    setEvents(sorted);
 
-                    if (upcoming.length > 0 && !selectedEventId) {
-                        setSelectedEventId(upcoming[0].id);
+                    if (!selectedEventId) {
+                        const upcoming = sorted.filter(ev => ev.date >= today);
+                        const defaultEvent = upcoming.length > 0 ? upcoming[upcoming.length - 1] : sorted[0];
+                        if (defaultEvent) setSelectedEventId(defaultEvent.id);
                     }
                 }
             }
@@ -91,13 +95,15 @@ export default function AttendancePage() {
             if (stored) {
                 const parsed: StoredEvent[] = JSON.parse(stored);
                 const today = new Date().toISOString().split('T')[0];
-                const upcoming = parsed
-                    .filter(ev => ev.date >= today)
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                setEvents(upcoming);
+                const sorted = parsed.sort((a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                );
+                setEvents(sorted);
 
-                if (upcoming.length > 0 && !selectedEventId) {
-                    setSelectedEventId(upcoming[0].id);
+                if (!selectedEventId) {
+                    const upcoming = sorted.filter(ev => ev.date >= today);
+                    const defaultEvent = upcoming.length > 0 ? upcoming[upcoming.length - 1] : sorted[0];
+                    if (defaultEvent) setSelectedEventId(defaultEvent.id);
                 }
             }
         } finally {
@@ -330,9 +336,12 @@ export default function AttendancePage() {
         }
     };
 
+    const today = new Date().toISOString().split('T')[0];
     const selectedEvent = events.find(e => e.id === selectedEventId);
     const presentCount = attendances.filter(a => a.status === 'present').length;
     const earlyLeavers = attendances.filter(a => a.status === 'present' && a.earlyLeave);
+    const upcomingEvents = events.filter(ev => ev.date >= today).slice().reverse();
+    const pastEvents = events.filter(ev => ev.date < today);
 
     return (
         <div className={styles.container}>
@@ -347,11 +356,24 @@ export default function AttendancePage() {
                         value={selectedEventId}
                         onChange={(e) => setSelectedEventId(e.target.value)}
                     >
-                        {events.map(event => (
-                            <option key={event.id} value={event.id}>
-                                {formatDate(event.date)} {event.startTime}〜 コート{event.courtNumber}
-                            </option>
-                        ))}
+                        {upcomingEvents.length > 0 && (
+                            <optgroup label="📆 今後の開催">
+                                {upcomingEvents.map(event => (
+                                    <option key={event.id} value={event.id}>
+                                        {formatDate(event.date)} {event.startTime}〜 コート{event.courtNumber}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
+                        {pastEvents.length > 0 && (
+                            <optgroup label="📁 過去の開催">
+                                {pastEvents.map(event => (
+                                    <option key={event.id} value={event.id}>
+                                        {formatDate(event.date)} {event.startTime}〜 コート{event.courtNumber}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
                     </select>
                 </div>
             ) : (

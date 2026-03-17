@@ -313,7 +313,7 @@ export default function SchedulePage() {
                         type="date"
                         className={styles.input}
                         value={formData.date}
-                        min={new Date().toISOString().split('T')[0]}
+                        min={editingId ? undefined : new Date().toISOString().split('T')[0]}
                         max={maxDateStr}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                         required
@@ -436,6 +436,13 @@ export default function SchedulePage() {
                                     </div>
                                 </div>
                                 <div className={styles.eventActions}>
+                                    <button
+                                        className={styles.editBtn}
+                                        onClick={() => handleEdit(event)}
+                                        title="編集"
+                                    >
+                                        ✏️
+                                    </button>
                                     <button
                                         className={styles.deleteBtn}
                                         onClick={() => handleDelete(event.id)}
