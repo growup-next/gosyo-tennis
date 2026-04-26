@@ -42,7 +42,7 @@
 }
 
 .noEvent {
-    background: var(--gray-100);
+    background: var(--bg-secondary);
     padding: var(--space-lg);
     border-radius: var(--border-radius);
     text-align: center;
@@ -261,9 +261,10 @@
 .team {
     flex: 1;
     padding: var(--space-sm);
-    background: var(--gray-50);
+    background: var(--bg-secondary);
     border-radius: var(--border-radius-sm);
     text-align: center;
+    color: var(--text-primary);
 }
 
 .team.winner {
@@ -291,7 +292,7 @@
 
 /* コイントス */
 .coinToss {
-    background: var(--gray-50);
+    background: var(--bg-secondary);
     border-radius: var(--border-radius-sm);
     padding: var(--space-md);
     margin-bottom: var(--space-md);
@@ -301,6 +302,7 @@
     font-weight: 600;
     font-size: 0.875rem;
     margin-bottom: var(--space-sm);
+    color: var(--text-primary);
 }
 
 .coinTossResult {
@@ -332,6 +334,8 @@
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 0.875rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 /* スコア入力 */
@@ -343,6 +347,7 @@
     font-weight: 600;
     font-size: 0.875rem;
     margin-bottom: var(--space-sm);
+    color: var(--text-primary);
 }
 
 .scoreRow {
@@ -374,6 +379,7 @@
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background: var(--bg-primary);
+    color: var(--text-primary);
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
@@ -441,6 +447,7 @@
 .modalContent h3 {
     font-size: 1rem;
     margin-bottom: var(--space-md);
+    color: var(--text-primary);
 }
 
 .modalInput {
@@ -449,6 +456,12 @@
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     margin-bottom: var(--space-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.modalInput::placeholder {
+    color: var(--text-muted);
 }
 
 .modalButtons {
@@ -464,7 +477,8 @@
 }
 
 .modalButtons button:first-child {
-    background: var(--gray-100);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     border: 1px solid var(--border-color);
 }
 
