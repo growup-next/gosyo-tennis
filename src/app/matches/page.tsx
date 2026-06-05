@@ -16,6 +16,39 @@ interface StoredEvent {
     courtNumber: number;
 }
 
+interface AttendanceSheetRow {
+    eventId: string;
+    memberId: string;
+    status: string;
+    earlyLeave: string;
+    earlyLeaveTime: string;
+}
+
+interface MatchSheetRow {
+    id: string;
+    eventId: string;
+    matchNumber: string;
+    team1Player1: string;
+    team1Player2: string;
+    team2Player1: string;
+    team2Player2: string;
+    coinTossWinner: string;
+    coinTossChoice: string;
+    coinTossLoserSide: string;
+    isNoGame: string;
+    noGameReason: string;
+    isConfirmed: string;
+    createdAt: string;
+}
+
+interface ResultSheetRow {
+    matchId: string;
+    eventId: string;
+    team1Games: string;
+    team2Games: string;
+    winner: string;
+}
+
 export default function MatchesPage() {
     const [events, setEvents] = useState<StoredEvent[]>([]);
     const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -34,7 +67,7 @@ export default function MatchesPage() {
     // 選択されたイベントが変更されたらデータを読み込む
     useEffect(() => {
         if (selectedEventId) {
-            loadEventData(selectedEventId);
+            void loadEventData(selectedEventId);
         }
     }, [selectedEventId]);
 
@@ -107,11 +140,59 @@ export default function MatchesPage() {
         }
     };
 
-    const loadEventData = (eventId: string) => {
-        // 出欠データ
+    const loadEventData = async (eventId: string) => {
+        try {
+            const [attendanceResponse, matchesResponse, resultsResponse] = await Promise.all([
+                fetch('/api/sheets/data?sheet=Attendance'),
+                fetch('/api/sheets/data?sheet=Matches'),
+                fetch('/api/sheets/data?sheet=Results'),
+            ]);
+
+            if (!attendanceResponse.ok || !matchesResponse.ok || !resultsResponse.ok) {
+                throw new Error('Failed to load spreadsheet data');
+            }
+
+            const [attendanceData, matchesData, resultsData] = await Promise.all([
+                attendanceResponse.json(),
+                matchesResponse.json(),
+                resultsResponse.json(),
+            ]);
+
+            const sheetAttendances = mapSheetAttendances(
+                eventId,
+                (attendanceData.data || []) as AttendanceSheetRow[]
+            );
+            const sheetMatches = mapSheetMatches(
+                eventId,
+                (matchesData.data || []) as MatchSheetRow[],
+                (resultsData.data || []) as ResultSheetRow[]
+            );
+
+            cacheEventAttendances(eventId, sheetAttendances);
+            cacheEventMatches(eventId, sheetMatches);
+            applyEventData(sheetAttendances, sheetMatches);
+        } catch (error) {
+            console.error('Failed to load event data from spreadsheet:', error);
+            loadEventDataFromLocal(eventId);
+        }
+    };
+
+    const loadEventDataFromLocal = (eventId: string) => {
         const attendancesStr = localStorage.getItem('tennis_attendances');
         const allAttendances: Attendance[] = attendancesStr ? JSON.parse(attendancesStr) : [];
         const eventAttendances = allAttendances.filter(a => a.eventId === eventId);
+
+        const matchesStr = localStorage.getItem('tennis_matches');
+        const allMatches: Match[] = matchesStr ? JSON.parse(matchesStr) : [];
+        const eventMatches = allMatches.filter(m => m.eventId === eventId);
+
+        applyEventData(eventAttendances, eventMatches);
+    };
+
+    const applyEventData = (
+        eventAttendances: Attendance[],
+        eventMatches: Match[]
+    ) => {
         setAttendances(eventAttendances);
 
         // 出席者を抽出
@@ -129,15 +210,102 @@ export default function MatchesPage() {
         const format = determineMatchFormat(present.length);
         setMatchFormat(format);
 
-        // 既存の試合データ（選択されたイベントのみ）
-        const matchesStr = localStorage.getItem('tennis_matches');
-        if (matchesStr) {
-            const allMatches: Match[] = JSON.parse(matchesStr);
-            const eventMatches = allMatches.filter(m => m.eventId === eventId);
-            setMatches(eventMatches);
-        } else {
-            setMatches([]);
+        setMatches(eventMatches);
+    };
+
+    const mapSheetAttendances = (
+        eventId: string,
+        rows: AttendanceSheetRow[]
+    ): Attendance[] => rows
+        .filter(row => row.eventId === eventId)
+        .map(row => ({
+            eventId: row.eventId,
+            memberId: row.memberId,
+            status: row.status as Attendance['status'],
+            earlyLeave: isTrue(row.earlyLeave),
+            earlyLeaveTime: row.earlyLeaveTime || '',
+        }));
+
+    const mapSheetMatches = (
+        eventId: string,
+        matchRows: MatchSheetRow[],
+        resultRows: ResultSheetRow[]
+    ): Match[] => {
+        const resultsByMatchId = new Map(
+            resultRows
+                .filter(row => row.eventId === eventId)
+                .map(row => [row.matchId, row])
+        );
+
+        return matchRows
+            .filter(row => row.eventId === eventId)
+            .map(row => {
+                const result = resultsByMatchId.get(row.id);
+                const winner = result?.winner === 'team1' || result?.winner === 'team2'
+                    ? result.winner
+                    : undefined;
+                const team1Games = parseNumber(result?.team1Games);
+                const team2Games = parseNumber(result?.team2Games);
+                const score: Score | undefined = winner !== undefined && team1Games !== undefined && team2Games !== undefined
+                    ? { team1Games, team2Games, winner }
+                    : undefined;
+                const coinToss = toCoinToss(row);
+
+                return {
+                    id: row.id,
+                    eventId: row.eventId,
+                    matchNumber: parseNumber(row.matchNumber) || 0,
+                    team1: [row.team1Player1, row.team1Player2] as [string, string],
+                    team2: [row.team2Player1, row.team2Player2] as [string, string],
+                    ...(coinToss ? { coinToss } : {}),
+                    ...(score ? { score } : {}),
+                    isNoGame: isTrue(row.isNoGame),
+                    noGameReason: row.noGameReason || undefined,
+                    isConfirmed: isTrue(row.isConfirmed),
+                    createdAt: row.createdAt || new Date().toISOString(),
+                };
+            })
+            .sort((a, b) => a.matchNumber - b.matchNumber);
+    };
+
+    const toCoinToss = (row: MatchSheetRow): CoinTossResult | undefined => {
+        if (
+            (row.coinTossWinner === 'team1' || row.coinTossWinner === 'team2') &&
+            (row.coinTossChoice === 'serve' || row.coinTossChoice === 'receive') &&
+            (row.coinTossLoserSide === 'left' || row.coinTossLoserSide === 'right')
+        ) {
+            return {
+                winner: row.coinTossWinner,
+                winnerChoice: row.coinTossChoice,
+                loserSide: row.coinTossLoserSide,
+            };
         }
+        return undefined;
+    };
+
+    const cacheEventAttendances = (eventId: string, eventAttendances: Attendance[]) => {
+        const attendancesStr = localStorage.getItem('tennis_attendances');
+        const allAttendances: Attendance[] = attendancesStr ? JSON.parse(attendancesStr) : [];
+        const otherAttendances = allAttendances.filter(a => a.eventId !== eventId);
+        localStorage.setItem('tennis_attendances', JSON.stringify([...otherAttendances, ...eventAttendances]));
+    };
+
+    const cacheEventMatches = (eventId: string, eventMatches: Match[]) => {
+        const matchesStr = localStorage.getItem('tennis_matches');
+        const allMatches: Match[] = matchesStr ? JSON.parse(matchesStr) : [];
+        const otherMatches = allMatches.filter(m => m.eventId !== eventId);
+        localStorage.setItem('tennis_matches', JSON.stringify([...otherMatches, ...eventMatches]));
+    };
+
+    const parseNumber = (value: string | undefined): number | undefined => {
+        if (value === undefined || value === '') return undefined;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    };
+
+    const isTrue = (value: string | boolean | undefined): boolean => {
+        if (typeof value === 'boolean') return value;
+        return value?.toLowerCase() === 'true';
     };
 
     const generateMatch = useCallback(() => {
