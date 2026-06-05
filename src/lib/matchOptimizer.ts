@@ -346,7 +346,7 @@ export function generateMatches(
     count: number
 ): Match[] {
     const matches: Match[] = [];
-    let currentMatches = [...context.existingMatches];
+    const currentMatches = [...context.existingMatches];
 
     for (let i = 0; i < count; i++) {
         const match = generateNextMatch({
