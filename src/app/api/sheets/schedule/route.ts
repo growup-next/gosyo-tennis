@@ -8,7 +8,16 @@ const PRIVATE_KEY = process.env.GOOGLE_SHEETS_PRIVATE_KEY
     : undefined;
 
 const SHEET_NAME = 'Events';
-const HEADERS = ['id', 'date', 'startTime', 'endTime', 'courtNumber', 'createdAt'];
+const HEADERS = [
+    'id',
+    'date',
+    'startTime',
+    'endTime',
+    'courtNumber',
+    'createdAt',
+    'status',
+    'cancellationReason',
+];
 
 /**
  * アクセストークンを取得
@@ -158,7 +167,7 @@ async function ensureHeaderRow(accessToken: string): Promise<void> {
 
     // 現在のヘッダー行を取得
     const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A1:F1`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A1:H1`,
         {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -169,12 +178,14 @@ async function ensureHeaderRow(accessToken: string): Promise<void> {
     const data = await response.json();
     console.log('Current header row response:', JSON.stringify(data));
 
-    // ヘッダーが空または存在しない場合は設定
-    if (!data.values || data.values.length === 0 || !data.values[0] || data.values[0].length === 0) {
-        console.log('Header row is empty, setting headers:', HEADERS);
+    const currentHeaders = data.values?.[0] || [];
+    const needsUpdate = HEADERS.some((header, index) => currentHeaders[index] !== header);
 
+    // 既存シートにも中止情報の列を追加する
+    if (needsUpdate) {
+        console.log('Setting header row:', HEADERS);
         const setResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A1:F1?valueInputOption=USER_ENTERED`,
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A1:H1?valueInputOption=USER_ENTERED`,
             {
                 method: 'PUT',
                 headers: {
@@ -196,7 +207,7 @@ async function ensureHeaderRow(accessToken: string): Promise<void> {
 
         console.log('Header row set successfully');
     } else {
-        console.log('Header row already exists:', data.values[0]);
+        console.log('Header row already exists:', currentHeaders);
     }
 }
 
@@ -210,12 +221,34 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         console.log('Request body:', JSON.stringify(body));
 
-        const { id, date, startTime, endTime, courtNumber } = body;
+        const {
+            id,
+            date,
+            startTime,
+            endTime,
+            courtNumber,
+            status = 'scheduled',
+            cancellationReason = '',
+        } = body;
 
         if (!date || !startTime || !endTime || !courtNumber) {
             console.log('Missing required fields');
             return NextResponse.json(
                 { error: 'Missing required fields', details: { date, startTime, endTime, courtNumber } },
+                { status: 400 }
+            );
+        }
+
+        if (!['scheduled', 'cancelled'].includes(status)) {
+            return NextResponse.json(
+                { error: 'Invalid status' },
+                { status: 400 }
+            );
+        }
+
+        if (status === 'cancelled' && !String(cancellationReason).trim()) {
+            return NextResponse.json(
+                { error: 'Cancellation reason is required' },
                 { status: 400 }
             );
         }
@@ -227,17 +260,69 @@ export async function POST(request: NextRequest) {
         // シートの存在確認・作成とヘッダー行設定
         await ensureSheetExists(accessToken);
 
-        // データを追加
+        const eventId = id || `event_${date}_${Date.now()}`;
+        const existingResponse = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A2:H`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
+        const existingData = await existingResponse.json();
+
+        if (!existingResponse.ok) {
+            throw new Error(`Failed to read existing events: ${JSON.stringify(existingData)}`);
+        }
+
+        const existingRows = (existingData.values || []) as string[][];
+        const existingRowIndex = existingRows.findIndex(row => row[0] === eventId);
+        const createdAt = existingRowIndex >= 0
+            ? existingRows[existingRowIndex][5] || new Date().toISOString()
+            : new Date().toISOString();
+
         const rowData = [
-            id || `event_${date}_${Date.now()}`,
+            eventId,
             date,
             startTime,
             endTime,
             courtNumber,
-            new Date().toISOString(),
+            createdAt,
+            status,
+            status === 'cancelled' ? String(cancellationReason).trim() : '',
         ];
 
-        console.log('Appending row:', rowData);
+        console.log('Saving row:', rowData);
+
+        if (existingRowIndex >= 0) {
+            const rowNumber = existingRowIndex + 2;
+            const updateResponse = await fetch(
+                `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A${rowNumber}:H${rowNumber}?valueInputOption=USER_ENTERED`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ values: [rowData] }),
+                }
+            );
+            const updateData = await updateResponse.json();
+
+            if (!updateResponse.ok) {
+                return NextResponse.json(
+                    { error: 'Failed to update data', details: updateData },
+                    { status: 500 }
+                );
+            }
+
+            return NextResponse.json({
+                success: true,
+                action: 'update',
+                message: 'Schedule updated in Google Sheets',
+                data: updateData,
+            });
+        }
 
         const appendResponse = await fetch(
             `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
@@ -267,6 +352,7 @@ export async function POST(request: NextRequest) {
         console.log('Schedule saved successfully');
         return NextResponse.json({
             success: true,
+            action: 'insert',
             message: 'Schedule saved to Google Sheets',
             data: appendData
         });

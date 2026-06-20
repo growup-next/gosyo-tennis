@@ -8,6 +8,8 @@ interface EventForm {
     startTime: string;
     endTime: string;
     courtNumber: number;
+    status: 'scheduled' | 'cancelled';
+    cancellationReason: string;
 }
 
 interface StoredEvent extends EventForm {
@@ -34,6 +36,8 @@ export default function SchedulePage() {
         startTime: '09:00',
         endTime: '12:00',
         courtNumber: 1,
+        status: 'scheduled',
+        cancellationReason: '',
     });
     const [events, setEvents] = useState<StoredEvent[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,6 +68,8 @@ export default function SchedulePage() {
                     startTime: ev.startTime,
                     endTime: ev.endTime,
                     courtNumber: parseInt(ev.courtNumber, 10) || 1,
+                    status: ev.status === 'cancelled' ? 'cancelled' : 'scheduled',
+                    cancellationReason: ev.cancellationReason || '',
                 }));
                 const sorted = parsed.sort((a, b) =>
                     new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -137,7 +143,9 @@ export default function SchedulePage() {
                     text: `⚠️ スプレッドシート保存エラー: ${sheetsData.message || sheetsData.error || 'Unknown error'}`,
                 });
             } else {
-                setMessage({ type: 'success', text: '✅ 開催日を登録しました！（スプレッドシートにも保存済み）' });
+                const action = editingId ? '更新' : '登録';
+                const result = formData.status === 'cancelled' ? '中止情報を' : '開催日を';
+                setMessage({ type: 'success', text: `✅ ${result}${action}しました！` });
             }
 
             // ローカルストレージにも保存
@@ -160,6 +168,8 @@ export default function SchedulePage() {
                 startTime: '09:00',
                 endTime: '12:00',
                 courtNumber: 1,
+                status: 'scheduled',
+                cancellationReason: '',
             });
 
         } catch (error) {
@@ -182,6 +192,8 @@ export default function SchedulePage() {
             startTime: event.startTime,
             endTime: event.endTime,
             courtNumber: event.courtNumber,
+            status: event.status,
+            cancellationReason: event.cancellationReason,
         });
         setEditingId(event.id);
         setMessage(null);
@@ -212,6 +224,8 @@ export default function SchedulePage() {
             startTime: '09:00',
             endTime: '12:00',
             courtNumber: 1,
+            status: 'scheduled',
+            cancellationReason: '',
         });
         setMessage(null);
     };
@@ -359,6 +373,38 @@ export default function SchedulePage() {
                     </div>
                 </div>
 
+                <div className={styles.cancellationSection}>
+                    <label className={styles.cancellationToggle}>
+                        <input
+                            type="checkbox"
+                            checked={formData.status === 'cancelled'}
+                            onChange={(e) => setFormData({
+                                ...formData,
+                                status: e.target.checked ? 'cancelled' : 'scheduled',
+                                cancellationReason: e.target.checked
+                                    ? formData.cancellationReason || '雨天中止'
+                                    : '',
+                            })}
+                        />
+                        <span>この開催を中止にする</span>
+                    </label>
+
+                    {formData.status === 'cancelled' && (
+                        <div className={styles.cancellationReasonField}>
+                            <label className={styles.label} htmlFor="cancellationReason">中止理由</label>
+                            <input
+                                id="cancellationReason"
+                                type="text"
+                                className={styles.input}
+                                value={formData.cancellationReason}
+                                placeholder="例：雨天中止"
+                                onChange={(e) => setFormData({ ...formData, cancellationReason: e.target.value })}
+                                required
+                            />
+                        </div>
+                    )}
+                </div>
+
                 {message && (
                     <div className={`${styles.message} ${styles[message.type]}`}>
                         {message.text}
@@ -391,13 +437,23 @@ export default function SchedulePage() {
                     <h2 className={styles.sectionTitle}>📆 今後の開催 ({upcomingEvents.length}件)</h2>
                     <div className={styles.eventList}>
                         {upcomingEvents.map((event) => (
-                            <div key={event.id} className={styles.eventCard}>
+                            <div
+                                key={event.id}
+                                className={`${styles.eventCard} ${event.status === 'cancelled' ? styles.cancelled : ''}`}
+                            >
                                 <div className={styles.eventMain}>
-                                    <div className={styles.eventDate}>{formatDate(event.date)}</div>
-                                    <div className={styles.eventDetails}>
-                                        <span>🕐 {event.startTime} 〜 {event.endTime}</span>
-                                        <span>🎾 コート {event.courtNumber}</span>
+                                    <div className={styles.eventDateRow}>
+                                        <div className={styles.eventDate}>{formatDate(event.date)}</div>
+                                        {event.status === 'cancelled' && <span className={styles.cancelledBadge}>中止</span>}
                                     </div>
+                                    {event.status === 'cancelled' ? (
+                                        <div className={styles.cancellationReason}>☔ {event.cancellationReason}</div>
+                                    ) : (
+                                        <div className={styles.eventDetails}>
+                                            <span>🕐 {event.startTime} 〜 {event.endTime}</span>
+                                            <span>🎾 コート {event.courtNumber}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className={styles.eventActions}>
                                     <button
@@ -427,13 +483,23 @@ export default function SchedulePage() {
                     <h2 className={styles.sectionTitle}>📁 過去の開催 ({pastEvents.length}件)</h2>
                     <div className={styles.eventList}>
                         {pastEvents.slice().reverse().map((event) => (
-                            <div key={event.id} className={`${styles.eventCard} ${styles.past}`}>
+                            <div
+                                key={event.id}
+                                className={`${styles.eventCard} ${styles.past} ${event.status === 'cancelled' ? styles.cancelled : ''}`}
+                            >
                                 <div className={styles.eventMain}>
-                                    <div className={styles.eventDate}>{formatDate(event.date)}</div>
-                                    <div className={styles.eventDetails}>
-                                        <span>🕐 {event.startTime} 〜 {event.endTime}</span>
-                                        <span>🎾 コート {event.courtNumber}</span>
+                                    <div className={styles.eventDateRow}>
+                                        <div className={styles.eventDate}>{formatDate(event.date)}</div>
+                                        {event.status === 'cancelled' && <span className={styles.cancelledBadge}>中止</span>}
                                     </div>
+                                    {event.status === 'cancelled' ? (
+                                        <div className={styles.cancellationReason}>☔ {event.cancellationReason}</div>
+                                    ) : (
+                                        <div className={styles.eventDetails}>
+                                            <span>🕐 {event.startTime} 〜 {event.endTime}</span>
+                                            <span>🎾 コート {event.courtNumber}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className={styles.eventActions}>
                                     <button
