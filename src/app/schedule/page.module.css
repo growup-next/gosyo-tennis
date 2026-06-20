@@ -180,6 +180,34 @@
     color: white;
 }
 
+.cancellationSection {
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--border-radius-sm);
+}
+
+.cancellationToggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--danger);
+    cursor: pointer;
+}
+
+.cancellationToggle input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--danger);
+}
+
+.cancellationReasonField {
+    margin-top: var(--space-md);
+}
+
 .message {
     padding: var(--space-md);
     border-radius: var(--border-radius-sm);
@@ -276,6 +304,11 @@
     border-left-color: var(--gray-400);
 }
 
+.eventCard.cancelled {
+    border-left-color: var(--danger);
+    background: rgba(239, 68, 68, 0.05);
+}
+
 .eventMain {
     flex: 1;
 }
@@ -285,6 +318,29 @@
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: var(--space-xs);
+}
+
+.eventDateRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.cancelledBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px var(--space-sm);
+    border-radius: 999px;
+    background: var(--danger);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.cancellationReason {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--danger);
 }
 
 .eventDetails {
